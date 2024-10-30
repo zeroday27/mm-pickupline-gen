@@ -15,7 +15,40 @@ export default function PickupLineResults({ lines, loading, onRegenerate, onCopy
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Results content */}
+        {lines.map((line, index) => (
+          <Alert key={index} className="flex items-center justify-between bg-white">
+            <AlertDescription className="flex-1 text-lg">
+              {line}
+            </AlertDescription>
+            <div className="flex gap-2 ml-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => onCopy(line)}
+                className="hover:bg-purple-50"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="hover:bg-purple-50"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </Alert>
+        ))}
+        
+        <Button
+          className="w-full mt-4 hover:bg-purple-50"
+          variant="outline"
+          onClick={onRegenerate}
+          disabled={loading}
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          နောက်ထပ် ဖန်တီးမည်
+        </Button>
       </CardContent>
     </Card>
   );
