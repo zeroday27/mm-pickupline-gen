@@ -1,8 +1,8 @@
 // src/components/PickupLineForm.jsx
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
 import { Heart, RefreshCw } from 'lucide-react';
 
 const interests = [
@@ -15,11 +15,15 @@ const interests = [
 ];
 
 export default function PickupLineForm({ formData, setFormData, loading, onGenerate }) {
+  const handleInterestClick = (value) => {
+    setFormData({...formData, interests: [value]});
+  };
+
   return (
     <Card className="mb-8">
       <CardHeader>
         <CardTitle className="text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
-          Myanmar Pick-up Line Generator
+          Pick-up Line Generator
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -45,14 +49,13 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
               {interests.map((interest) => (
                 <Button
                   key={interest.value}
-                  variant={formData.interests.includes(interest.value) ? "secondary" : "outline"}
-                  className="justify-start"
-                  onClick={() => {
-                    const newInterests = formData.interests.includes(interest.value)
-                      ? formData.interests.filter(i => i !== interest.value)
-                      : [...formData.interests, interest.value];
-                    setFormData({...formData, interests: newInterests});
-                  }}
+                  variant={formData.interests[0] === interest.value ? "secondary" : "outline"}
+                  className={`justify-start transition-all ${
+                    formData.interests[0] === interest.value 
+                      ? "bg-purple-100 border-purple-500 text-purple-700 hover:bg-purple-200" 
+                      : "hover:bg-purple-50"
+                  }`}
+                  onClick={() => handleInterestClick(interest.value)}
                 >
                   <span className="mr-2">{interest.emoji}</span>
                   {interest.label}
@@ -78,7 +81,7 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
           <Button
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
             onClick={onGenerate}
-            disabled={loading}
+            disabled={loading || !formData.identity || !formData.interests.length || !formData.style}
           >
             {loading ? (
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />

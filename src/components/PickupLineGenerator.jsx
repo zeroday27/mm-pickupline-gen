@@ -1,4 +1,3 @@
-// src/components/PickupLineGenerator.jsx
 import React, { useState } from 'react';
 import PickupLineForm from './PickupLineForm';
 import PickupLineResults from './PickupLineResults';
@@ -17,29 +16,8 @@ export default function PickupLineGenerator() {
 
   const generatePickupLines = () => {
     setLoading(true);
-    
-    const selectedInterests = formData.interests;
-    let generatedPickupLines = [];
-    
-    selectedInterests.forEach(interest => {
-      const linesForCategory = pickupLinesByCategory[interest];
-      if (linesForCategory) {
-        const randomIndex = Math.floor(Math.random() * linesForCategory.length);
-        generatedPickupLines.push(linesForCategory[randomIndex]);
-      }
-    });
-
-    if (generatedPickupLines.length === 0) {
-      const allCategories = Object.keys(pickupLinesByCategory);
-      const randomCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
-      const randomLine = pickupLinesByCategory[randomCategory][Math.floor(Math.random() * pickupLinesByCategory[randomCategory].length)];
-      generatedPickupLines.push(randomLine);
-    }
-
-    setTimeout(() => {
-      setGeneratedLines(generatedPickupLines);
-      setLoading(false);
-    }, 1000);
+    // Generation logic
+    setLoading(false);
   };
 
   const handleCopy = async (text) => {
