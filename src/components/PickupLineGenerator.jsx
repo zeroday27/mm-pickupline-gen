@@ -16,8 +16,20 @@ export default function PickupLineGenerator() {
 
   const generatePickupLines = () => {
     setLoading(true);
-    // Generation logic
-    setLoading(false);
+    
+    const selectedInterest = formData.interests[0];
+    const linesForCategory = pickupLinesByCategory[selectedInterest];
+    let generatedPickupLines = [];
+    
+    if (linesForCategory) {
+      const line = linesForCategory[Math.floor(Math.random() * linesForCategory.length)];
+      generatedPickupLines.push(line);
+    }
+
+    setTimeout(() => {
+      setGeneratedLines(generatedPickupLines);
+      setLoading(false);
+    }, 1000);
   };
 
   const handleCopy = async (text) => {
