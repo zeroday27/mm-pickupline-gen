@@ -6,3 +6,18 @@
 :root {
   background-color: theme(colors.gray.50);
 }
+
+/*
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (max-width: 640px) {
+  .btn-text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+*/

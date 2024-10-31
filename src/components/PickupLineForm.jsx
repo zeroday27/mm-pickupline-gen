@@ -44,26 +44,25 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
           </div>
 
           <div>
-            <Label>သင့် Crush ရဲ့ စိတ်ဝင်စားမှုများ</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-1">
-              {interests.map((interest) => (
-                <Button
-                  key={interest.value}
-                  variant={formData.interests[0] === interest.value ? "secondary" : "outline"}
-                  className={`justify-start transition-all ${
-                    formData.interests[0] === interest.value 
-                      ? "bg-purple-100 border-purple-500 text-purple-700 hover:bg-purple-200" 
-                      : "hover:bg-purple-50"
-                  }`}
-                  onClick={() => handleInterestClick(interest.value)}
-                >
-                  <span className="mr-2">{interest.emoji}</span>
-                  {interest.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
+  <Label>သင့် Crush ရဲ့ စိတ်ဝင်စားမှုများ</Label>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+    {interests.map((interest) => (
+      <Button
+        key={interest.value}
+        variant={formData.interests[0] === interest.value ? "secondary" : "outline"}
+        className={`justify-start w-full p-3 text-sm sm:text-base transition-all ${
+          formData.interests[0] === interest.value 
+            ? "bg-purple-100 border-purple-500 text-purple-700 hover:bg-purple-200" 
+            : "hover:bg-purple-50"
+        }`}
+        onClick={() => handleInterestClick(interest.value)}
+      >
+        <span className="mr-3 text-lg">{interest.emoji}</span>
+        <span className="text-left flex-1">{interest.label}</span>
+      </Button>
+    ))}
+  </div>
+</div>
           <div>
             <Label>Pick-up line style</Label>
             <select 
