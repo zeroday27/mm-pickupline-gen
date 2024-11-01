@@ -20,18 +20,18 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
   };
 
   return (
-    <Card className="mb-8">
+    <Card className="mb-8 dark:bg-gray-900 border-0">
       <CardHeader>
-        <CardTitle className="text-center text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+        <CardTitle className="text-center text-3xl font-bold text-purple-600 dark:text-purple-400">
           Pick-up Line Generator
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
           <div>
-            <Label>သင့်ရဲ့ Identity ကို ရွေးပါ</Label>
+            <Label className="text-gray-700 dark:text-gray-200">သင့်ရဲ့ Identity ကို ရွေးပါ</Label>
             <select 
-              className="w-full p-2 border rounded-md mt-1"
+              className="w-full p-3 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 dark:focus:ring-purple-800 focus:ring-opacity-50 text-gray-900 dark:text-gray-100"
               value={formData.identity}
               onChange={(e) => setFormData({...formData, identity: e.target.value})}
             >
@@ -44,29 +44,37 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
           </div>
 
           <div>
-  <Label>သင့် Crush ရဲ့ စိတ်ဝင်စားမှုများ</Label>
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-    {interests.map((interest) => (
-      <Button
-        key={interest.value}
-        variant={formData.interests[0] === interest.value ? "secondary" : "outline"}
-        className={`justify-start w-full p-3 text-sm sm:text-base transition-all ${
-          formData.interests[0] === interest.value 
-            ? "bg-purple-100 border-purple-500 text-purple-700 hover:bg-purple-200" 
-            : "hover:bg-purple-50"
-        }`}
-        onClick={() => handleInterestClick(interest.value)}
-      >
-        <span className="mr-3 text-lg">{interest.emoji}</span>
-        <span className="text-left flex-1">{interest.label}</span>
-      </Button>
-    ))}
-  </div>
-</div>
+            <Label className="text-gray-700 dark:text-gray-200">သင့် Crush ရဲ့ စိတ်ဝင်စားမှုများ</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {interests.map((interest) => {
+                const isSelected = formData.interests[0] === interest.value;
+                return (
+                  <Button
+                    key={interest.value}
+                    type="button"
+                    variant={isSelected ? "secondary" : "outline"}
+                    className={`
+                      w-full p-3 justify-start text-left
+                      ${isSelected 
+                        ? "bg-purple-100 border-purple-500 text-purple-700 dark:bg-purple-900 dark:border-purple-400 dark:text-purple-100" 
+                        : "bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900 text-gray-900 dark:text-gray-100"}
+                      transition-colors duration-200
+                      border rounded-md
+                    `}
+                    onClick={() => handleInterestClick(interest.value)}
+                  >
+                    <span className="mr-3 text-xl">{interest.emoji}</span>
+                    <span>{interest.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
           <div>
-            <Label>Pick-up line style</Label>
+            <Label className="text-gray-700 dark:text-gray-200">Pick-up line style</Label>
             <select 
-              className="w-full p-2 border rounded-md mt-1"
+              className="w-full p-3 mt-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 dark:focus:ring-purple-800 focus:ring-opacity-50 text-gray-900 dark:text-gray-100"
               value={formData.style}
               onChange={(e) => setFormData({...formData, style: e.target.value})}
             >
@@ -78,7 +86,8 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
           </div>
 
           <Button
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+            type="button"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white dark:from-purple-500 dark:to-pink-500 dark:hover:from-purple-600 dark:hover:to-pink-600"
             onClick={onGenerate}
             disabled={loading || !formData.identity || !formData.interests.length || !formData.style}
           >

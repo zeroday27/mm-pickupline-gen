@@ -41,8 +41,11 @@ export default function PickupLineGenerator() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 py-8">
+          Myanmar Pick-up Line Generator
+        </h1>
         <PickupLineForm 
           formData={formData}
           setFormData={setFormData}
