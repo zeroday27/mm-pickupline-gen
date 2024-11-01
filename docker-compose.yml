@@ -1,8 +1,7 @@
 # docker-compose.yml
 version: '3.8'
-
 services:
-  dev:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -13,17 +12,31 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_HOST=0.0.0.0
-    stdin_open: true
-    tty: true
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
 
-  # Production environment
-  prod:
+  backend:
     build:
-      context: .
-      dockerfile: Dockerfile.prod
-    container_name: pickup-line-generator-prod
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/pickuplines
+      - PORT=3000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data:

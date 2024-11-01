@@ -1,64 +1,87 @@
 import React, { useState } from 'react';
 import PickupLineForm from './PickupLineForm';
 import PickupLineResults from './PickupLineResults';
-import { pickupLinesByCategory } from '../data/pickupLines';
+import { fetchPickupLines } from '../lib/api';
 
-export default function PickupLineGenerator() {
+const PickupLineGenerator = () => {
   const [formData, setFormData] = useState({
     identity: '',
     interests: [],
-    style: '',
-    count: 5
+    style: ''
   });
 
   const [generatedLines, setGeneratedLines] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const generatePickupLines = () => {
-    setLoading(true);
-    
-    const selectedInterest = formData.interests[0];
-    const linesForCategory = pickupLinesByCategory[selectedInterest];
-    let generatedPickupLines = [];
-    
-    if (linesForCategory) {
-      const line = linesForCategory[Math.floor(Math.random() * linesForCategory.length)];
-      generatedPickupLines.push(line);
+  const generatePickupLines = async () => {
+    if (!formData.interests.length || !formData.style || !formData.identity) {
+      return;
     }
 
-    setTimeout(() => {
-      setGeneratedLines(generatedPickupLines);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Add artificial delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const lines = await fetchPickupLines(formData.interests[0], formData.style);
+      
+      if (!lines || lines.length === 0) {
+        setError('ရွေးချယ်ထားသော category အတွက် pickup lines များ မရှိသေးပါ။');
+        setGeneratedLines([]);
+        return;
+      }
+
+      const randomLine = lines[Math.floor(Math.random() * lines.length)];
+      setGeneratedLines(randomLine ? [randomLine.text] : []);
+
+    } catch (err) {
+      console.error('Error generating pickup lines:', err);
+      setError('Pickup lines ထုတ်ယူရာတွင် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်မံကြိုးစားကြည့်ပါ။');
+      setGeneratedLines([]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleCopy = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
+      console.log('Text copied successfully');
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      console.error('Failed to copy text:', err);
     }
   };
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 py-8">
-          Myanmar Pick-up Line Generator
-        </h1>
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 dark:from-gray-950 dark:to-gray-900 transition-colors duration-200 p-4">
+      <div className="max-w-4xl mx-auto">
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-100 rounded-md">
+            {error}
+          </div>
+        )}
+        
         <PickupLineForm 
           formData={formData}
           setFormData={setFormData}
           loading={loading}
           onGenerate={generatePickupLines}
         />
-        <PickupLineResults 
-          lines={generatedLines}
-          loading={loading}
-          onRegenerate={generatePickupLines}
-          onCopy={handleCopy}
-        />
+
+        {generatedLines.length > 0 && (
+          <PickupLineResults 
+            lines={generatedLines}
+            loading={loading}
+            onRegenerate={generatePickupLines}
+            onCopy={handleCopy}
+          />
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default PickupLineGenerator;
