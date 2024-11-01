@@ -6,7 +6,16 @@ import { PickupLine } from './models/pickupLine.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Updated CORS configuration
+app.use(cors({
+  origin: [
+    'https://pickupmm.noclouds.space',
+    'http://localhost:5173' // For local development
+  ],
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Connect to MongoDB
