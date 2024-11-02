@@ -8,7 +8,11 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN npm run build
+
+ENV VITE_API_URL=https://pickupmmapi.noclouds.space
+ENV VITE_ENV=uat
+
+RUN npm run build:uat
 
 # Production stage
 FROM nginx:alpine

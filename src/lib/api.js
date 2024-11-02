@@ -1,4 +1,5 @@
-const API_URL = import.meta.env.VITE_API_URL;
+// src/lib/api.js
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export async function fetchPickupLines(category, style) {
   try {
@@ -9,6 +10,7 @@ export async function fetchPickupLines(category, style) {
     const response = await fetch(`${API_URL}/api/pickup-lines?${params}`, {
       headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
       }
     });
 
