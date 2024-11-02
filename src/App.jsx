@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from 'react';
 import PickupLineGenerator from './components/PickupLineGenerator';
 import { ThemeToggle } from './components/ThemeToggle';

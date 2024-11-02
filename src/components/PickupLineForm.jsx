@@ -14,7 +14,7 @@ const interests = [
   { value: 'gaming', label: 'ဂိမ်း (Gaming)', emoji: '🎮' }
 ];
 
-export default function PickupLineForm({ formData, setFormData, loading, onGenerate }) {
+const PickupLineForm = ({ formData, setFormData, loading, onGenerate }) => {
   const handleInterestClick = (value) => {
     setFormData({...formData, interests: [value]});
   };
@@ -103,3 +103,4 @@ export default function PickupLineForm({ formData, setFormData, loading, onGener
     </Card>
   );
 }
+export default PickupLineForm;

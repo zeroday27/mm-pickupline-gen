@@ -34,5 +34,4 @@ const LoadingAnimation = () => {
     </div>
   );
 };
-
 export default LoadingAnimation;

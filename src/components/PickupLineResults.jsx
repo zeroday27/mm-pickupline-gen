@@ -3,20 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Share2, Copy, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
+import LoadingAnimation from './LoadingAnimation';
 
 const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
   if (loading) {
     return (
       <Card className="mt-4">
-        <CardContent className="flex flex-col items-center justify-center p-8">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
-          </div>
-          <div className="mt-4 text-purple-600 dark:text-purple-400">
-            စဉ်းစားနေပါတယ်...
-          </div>
+        <CardContent>
+          <LoadingAnimation />
         </CardContent>
       </Card>
     );
@@ -24,9 +18,8 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
 
   if (lines.length === 0) return null;
 
-
   return (
-    <Card>
+    <Card className="mt-4">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">
           သင့်အတွက် Pick-up Lines များ
@@ -34,7 +27,10 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {lines.map((line, index) => (
-          <Alert key={index} className="flex items-center justify-between bg-white dark:bg-gray-800">
+          <Alert 
+            key={index} 
+            className="flex items-center justify-between bg-white/10 dark:bg-gray-800/50 backdrop-blur-sm"
+          >
             <AlertDescription className="flex-1 text-lg">
               {line}
             </AlertDescription>
@@ -70,5 +66,4 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
     </Card>
   );
 };
-
 export default PickupLineResults;
