@@ -6,49 +6,63 @@ import { PickupLine } from './models/pickupLine.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration aligned with your environments
-const allowedOrigins = [
-  'https://pickupmm.noclouds.space',    // UAT/Production
-  'http://localhost:5173',              // Local Vite development
-  'http://localhost:3000'               // Local API testing
-];
-
+// CORS configuration that accepts all local network requests
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('Blocked origin:', origin);
-      callback(null, false);
-    }
-  },
-  methods: ['GET', 'POST'],
-  credentials: true
+  origin: true, // Allow all origins
+  credentials: true, // Allow credentials
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Access-Control-Allow-Origin'],
 }));
+
+// Add headers to all responses
+app.use((req, res, next) => {
+  // Allow requests from any origin
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json());
 
-// MongoDB connection using Docker Compose configuration
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => {
     console.error('MongoDB connection error:', err);
-    // Don't exit process in development to allow for MongoDB container startup
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);
     }
   });
 
+// Debug middleware to log requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`, {
+    origin: req.headers.origin,
+    referer: req.headers.referer
+  });
+  next();
+});
+
 // Routes
 app.get('/api/pickup-lines', async (req, res) => {
   const { category, style } = req.query;
+  console.log('Received request for pickup lines:', { category, style }); // Debug log
+  
   try {
     const query = {};
     if (category) query.category = category;
     if (style) query.style = style;
     
     const pickupLines = await PickupLine.find(query);
+    console.log(`Found ${pickupLines.length} pickup lines`); // Debug log
     
     if (!pickupLines || pickupLines.length === 0) {
       return res.status(404).json({ 
@@ -74,11 +88,9 @@ app.post('/api/pickup-lines', async (req, res) => {
   }
 });
 
-// Handle unmatched routes
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
-
-const server = app.listen(PORT, () => {
+// Listen on all network interfaces
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Server accessible at http://localhost:${PORT}`);
+  console.log(`Also accessible at http://<your-ip>:${PORT}`);
 });

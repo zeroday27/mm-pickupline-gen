@@ -1,5 +1,5 @@
 // src/lib/api.js
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { config } from '../config/config';
 
 export async function fetchPickupLines(category, style) {
   try {
@@ -7,15 +7,20 @@ export async function fetchPickupLines(category, style) {
     if (category) params.append('category', category);
     if (style) params.append('style', style);
 
-    const response = await fetch(`${API_URL}/api/pickup-lines?${params}`, {
+    const url = `${config.apiUrl}/api/pickup-lines?${params}`;
+    
+    if (import.meta.env.DEV) {
+      console.log('Fetching from:', url);
+    }
+
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
       }
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch pickup lines');
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     return response.json();

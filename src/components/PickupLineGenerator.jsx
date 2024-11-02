@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import PickupLineForm from './PickupLineForm';
 import PickupLineResults from './PickupLineResults';
+import { fetchPickupLines } from '../lib/api';  // Updated import path
 
 const PickupLineGenerator = () => {
   const [formData, setFormData] = useState({
@@ -26,9 +27,7 @@ const PickupLineGenerator = () => {
       // Add artificial delay for better UX
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Fetch the lines from backend
-      const response = await fetch(`http://localhost:3000/api/pickup-lines?category=${formData.interests[0]}&style=${formData.style}`);
-      const lines = await response.json();
+      const lines = await fetchPickupLines(formData.interests[0], formData.style);
       
       if (!lines || lines.length === 0) {
         setError('ရွေးချယ်ထားသော category အတွက် pickup lines များ မရှိသေးပါ။');
