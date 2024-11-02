@@ -3,20 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Share2, Copy, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
-import LoadingAnimation from './LoadingAnimation';
 
 const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
   if (loading) {
     return (
-      <Card>
-        <CardContent>
-          <LoadingAnimation />
+      <Card className="mt-4">
+        <CardContent className="flex flex-col items-center justify-center p-8">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+          </div>
+          <div className="mt-4 text-purple-600 dark:text-purple-400">
+            စဉ်းစားနေပါတယ်...
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   if (lines.length === 0) return null;
+
 
   return (
     <Card>
