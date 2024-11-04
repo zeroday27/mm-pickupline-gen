@@ -5,3 +5,8 @@ dist
 README.md
 .env
 *.log
+# .gitignore
+.env
+.env.local
+.env.*.local
+backend/.env

@@ -2,8 +2,13 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import { config } from 'dotenv';
 import { PickupLine } from './models/pickupLine.js';
+import { authMiddleware } from './middleware/auth.js';
 import adminRoutes from './routes/admin.js';
+
+// Load environment variables
+config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,13 +17,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Admin routes
-app.use('/api/admin', adminRoutes);
-
-// Main pickup lines route
+// Public routes
 app.get('/api/pickup-lines', async (req, res) => {
-  const { category, style } = req.query;
   try {
+    const { category, style } = req.query;
     const query = {};
     if (category) query.category = category;
     if (style) query.style = style;
@@ -29,6 +31,9 @@ app.get('/api/pickup-lines', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Protected admin routes
+app.use('/api/admin', authMiddleware, adminRoutes);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://mongodb:27017/pickuplines')

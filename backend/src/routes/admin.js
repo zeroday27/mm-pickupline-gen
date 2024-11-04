@@ -1,32 +1,43 @@
+// backend/src/routes/admin.js
 import express from 'express';
 import { PickupLine } from '../models/pickupLine.js';
 
 const router = express.Router();
 
-// Get all pickup lines with pagination
+// Get all pickup lines with search and filters
 router.get('/pickup-lines', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, search, category, style } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    const filter = {};
-    if (req.query.category) filter.category = req.query.category;
-    if (req.query.style) filter.style = req.query.style;
+    // Build query
+    const query = {};
+    
+    if (search) {
+      query.text = { $regex: search, $options: 'i' };
+    }
+    
+    if (category) {
+      query.category = category;
+    }
+    
+    if (style) {
+      query.style = style;
+    }
 
     const [pickupLines, total] = await Promise.all([
-      PickupLine.find(filter)
+      PickupLine.find(query)
         .skip(skip)
-        .limit(limit)
+        .limit(parseInt(limit))
         .sort({ createdAt: -1 }),
-      PickupLine.countDocuments(filter)
+      PickupLine.countDocuments(query)
     ]);
 
     res.json({
       pickupLines,
       total,
-      pages: Math.ceil(total / limit),
-      currentPage: page
+      pages: Math.ceil(total / parseInt(limit)),
+      currentPage: parseInt(page)
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -74,4 +85,9 @@ router.delete('/pickup-lines/:id', async (req, res) => {
   }
 });
 
-export default router;
+// Verify login
+router.get('/login', (req, res) => {
+  res.json({ message: 'Authenticated successfully' });
+});
+
+export { router as default };
