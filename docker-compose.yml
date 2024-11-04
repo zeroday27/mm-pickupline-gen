@@ -1,48 +1,40 @@
-version: '3.8'
 services:
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000}
     ports:
       - "5173:5173"
     volumes:
       - .:/app
       - /app/node_modules
-    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3000
     depends_on:
       - backend
 
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend # Changed this line
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - MONGODB_URI=mongodb://mongodb:27017/pickuplines
-      - PORT=3000
+      dockerfile: Dockerfile.backend
     ports:
       - "3000:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/pickuplines
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
 
   mongodb:
     image: mongo:latest
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
 
 volumes:
   mongodb_data:

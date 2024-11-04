@@ -1,12 +1,14 @@
+# Dockerfile.backend
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy backend package files
+# Copy package files
 COPY backend/package*.json ./
+
 RUN npm install
 
-# Copy backend source code
+# Copy source code
 COPY backend/ .
 
 EXPOSE 3000

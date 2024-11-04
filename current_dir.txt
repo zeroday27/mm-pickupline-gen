@@ -1,0 +1,59 @@
+.
+├── Dockerfile.backend
+├── Dockerfile.dev
+├── Dockerfile.prod
+├── Dockerfile.uat
+├── README.md
+├── backend
+│   ├── node_modules
+│   ├── package.json
+│   ├── routes.js
+│   └── src
+│       ├── data
+│       │   └── pickupLines.js
+│       ├── docker-compose.prod.yml
+│       ├── index.js
+│       ├── models
+│       │   └── pickupLine.js
+│       ├── nginx.conf
+│       ├── routes
+│       │   └── admin.js
+│       └── seed.js
+├── current_dir.txt
+├── docker-compose.yml
+├── index.html
+├── node_modules
+├── package-lock.json
+├── package.json
+├── postcss.config.cjs
+├── src
+│   ├── App.jsx
+│   ├── components
+│   │   ├── LoadingAnimation.jsx
+│   │   ├── PickupLineForm.jsx
+│   │   ├── PickupLineGenerator.jsx
+│   │   ├── PickupLineResults.jsx
+│   │   ├── ThemeToggle.jsx
+│   │   ├── admin
+│   │   │   ├── AdminPanel.jsx
+│   │   │   └── EditPickupLineModal.jsx
+│   │   └── ui
+│   │       ├── alert.jsx
+│   │       ├── button.jsx
+│   │       ├── card.jsx
+│   │       └── label.jsx
+│   ├── config
+│   │   ├── config.js
+│   │   └── environment.js
+│   ├── index.css
+│   ├── lib
+│   │   ├── api.js
+│   │   └── utils.js
+│   ├── main.jsx
+│   └── styles
+│       └── globals.css
+├── tailwind.config.cjs
+├── use
+└── vite.config.js
+
+15 directories, 42 files
