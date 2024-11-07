@@ -9,8 +9,8 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://localhost:3000
+      - NODE_ENV=production
+      - VITE_API_URL=https://pickupmmapi.noclouds.space
     depends_on:
       - backend
 
