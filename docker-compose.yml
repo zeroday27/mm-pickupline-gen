@@ -10,7 +10,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=production
-      - VITE_API_URL=https://pmmapi.bnespace.com
+      - VITE_API_URL=localhost:3000
     depends_on:
       - backend
 
