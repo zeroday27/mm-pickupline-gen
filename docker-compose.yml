@@ -10,7 +10,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=production
-      - VITE_API_URL=https://pickupmmapi.noclouds.space
+      - VITE_API_URL=https://pmmapi.bnespace.com
     depends_on:
       - backend
 
