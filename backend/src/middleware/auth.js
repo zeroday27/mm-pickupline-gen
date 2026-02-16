@@ -1,10 +1,5 @@
 // backend/src/middleware/auth.js
 export const authMiddleware = (req, res, next) => {
-  // Skip auth for development environment
-  if (process.env.NODE_ENV === 'development') {
-    return next();
-  }
-
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Basic ')) {

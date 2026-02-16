@@ -14,8 +14,24 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://frontend:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Pickup Line Generator API',
+    version: '1.0.0',
+    endpoints: {
+      pickupLines: '/api/pickup-lines',
+      admin: '/api/admin'
+    }
+  });
+});
 
 // Public routes
 app.get('/api/pickup-lines', async (req, res) => {
