@@ -1,19 +1,25 @@
 # Dockerfile.backend
 FROM node:18-alpine
 
-WORKDIR /app
+WORKDIR /app/backend
 
 # Install build dependencies for bcrypt
 RUN apk add --no-cache make gcc g++ python3
 
-# Copy package files
+# Copy backend package files
 COPY backend/package*.json ./
 
 # Install dependencies
 RUN npm install
 
+# Remove build deps to reduce image size
+RUN apk del make gcc g++ python3
+
 # Copy source code
-COPY backend/ .
+COPY backend/src ./src/
+
+# Run as non-root user
+USER 1000
 
 EXPOSE 3000
 

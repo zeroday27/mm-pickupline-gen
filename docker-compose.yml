@@ -9,8 +9,8 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      - NODE_ENV=production
-      - VITE_API_URL=https://your_backend_api_url
+      - NODE_ENV=development
+      - VITE_API_URL=${VITE_API_URL:-}
     depends_on:
       - backend
 
@@ -21,20 +21,62 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - ./backend:/app/backend
+      - /app/backend/node_modules
     environment:
       - NODE_ENV=development
-      - MONGODB_URI=mongodb://mongodb:27017/pickuplines
+      - MONGODB_URI=${BACKEND_MONGODB_URI:-mongodb://${MONGO_ROOT_USER:-root}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/pickuplines?authSource=admin}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - MINIMAX_BASE_URL=https://api.minimaxi.chat
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - mongodb
+      - redis
+
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    working_dir: /app/backend
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/node_modules
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=${BACKEND_MONGODB_URI:-mongodb://${MONGO_ROOT_USER:-root}:${MONGO_ROOT_PASSWORD:-changeme}@mongodb:27017/pickuplines?authSource=admin}
+    command:
+      - npm
+      - run
+      - ingest:staging
+      - --
+      - --file
+      - /app/backend/data/staging/pickuplines.sample.json
+      - --dry-run
+    depends_on:
+      - mongodb
+    profiles:
+      - tools
 
   mongodb:
-    image: mongo:latest
+    image: mongo:8.2
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-root}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-changeme}
     volumes:
       - mongodb_data:/data/db
 
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   mongodb_data:
+  redis_data:

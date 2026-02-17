@@ -24,7 +24,16 @@ async function seedDatabase() {
         pickupLines.push({
           category,
           text,
+          burmese_text: text,
           style,
+          length: 'short',
+          quality_score: 75,
+          safety_score: 95,
+          review_status: 'approved',
+          tags: [category, style],
+          source_url: '',
+          license_note: '',
+          english_source_text: '',
           language: 'my'
         });
       });

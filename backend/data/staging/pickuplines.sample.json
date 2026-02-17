@@ -1,0 +1,30 @@
+[
+  {
+    "category": "movies",
+    "style": "funny",
+    "length": "short",
+    "burmese_text": "မင်းက Marvel post-credit scene လား၊ အဆုံးထိစောင့်ကြည့်ချင်နေမိတယ် 🎬",
+    "english_source_text": "Are you a post-credit scene? Because you're worth waiting for.",
+    "source_url": "https://example.com/movies-line",
+    "license_note": "manual collection for internal testing",
+    "quality_score": 82,
+    "safety_score": 98,
+    "tags": ["movie-quote", "playful"],
+    "review_status": "staging",
+    "language": "my"
+  },
+  {
+    "category": "tech",
+    "style": "flirty",
+    "length": "short",
+    "burmese_text": "မင်းက Wi-Fi strong signal လိုပဲ၊ နီးလေလေ happy ဖြစ်လေလေ 💻",
+    "english_source_text": "You are like strong Wi-Fi, the closer I get the happier I am.",
+    "source_url": "https://example.com/tech-line",
+    "license_note": "manual collection for internal testing",
+    "quality_score": 78,
+    "safety_score": 96,
+    "tags": ["tech", "flirty"],
+    "review_status": "staging",
+    "language": "my"
+  }
+]

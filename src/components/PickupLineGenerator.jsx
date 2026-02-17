@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import PickupLineForm from './PickupLineForm';
 import PickupLineResults from './PickupLineResults';
-import { fetchPickupLines } from '../lib/api';  // Updated import path
+import { usePickupLineGenerator } from '../lib/pickupLineUtils';
 
 const PickupLineGenerator = () => {
   const [formData, setFormData] = useState({
@@ -15,8 +15,11 @@ const PickupLineGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const pickupLineGenerator = usePickupLineGenerator();
+
   const generatePickupLines = async () => {
     if (!formData.interests.length || !formData.style || !formData.identity) {
+      setError('Please fill in all required fields');
       return;
     }
 
@@ -24,30 +27,50 @@ const PickupLineGenerator = () => {
     setError(null);
 
     try {
-      // Add artificial delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const lines = await fetchPickupLines(formData.interests[0], formData.style);
-      
-      if (!lines || lines.length === 0) {
-        setError('ရွေးချယ်ထားသော category အတွက် pickup lines များ မရှိသေးပါ။');
-        setGeneratedLines([]);
-        return;
-      }
+      // Use the new generateWithAI which passes identity
+      const result = await pickupLineGenerator.generateWithAI(
+        formData.identity,
+        formData.interests[0],
+        formData.style
+      );
 
-      const randomLine = lines[Math.floor(Math.random() * lines.length)];
-      setGeneratedLines(randomLine ? [randomLine.text] : []);
+      if (result && result.text) {
+        setGeneratedLines([{
+          text: result.text,
+          isAI: result.isAI,
+          source: result.source,
+          insight: result.insight
+        }]);
+      } else {
+        throw new Error('Invalid pickup line generated');
+      }
 
     } catch (err) {
       console.error('Error generating pickup lines:', err);
-      setError('Pickup lines ထုတ်ယူရာတွင် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်မံကြိုးစားကြည့်ပါ။');
+      setError(
+        'Pickup lines ထုတ်ယူရာတွင် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်မံကြိုးစားကြည့်ပါ။'
+      );
       setGeneratedLines([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleFormDataChange = (newFormData) => {
+    if (
+      newFormData.interests[0] !== formData.interests[0] ||
+      newFormData.style !== formData.style ||
+      newFormData.identity !== formData.identity
+    ) {
+      pickupLineGenerator.clearCache();
+    }
+    setFormData(newFormData);
+    setError(null);
+  };
+
   const handleCopy = async (text) => {
+    if (!text) return;
+
     try {
       await navigator.clipboard.writeText(text);
       console.log('Text copied successfully');
@@ -64,16 +87,16 @@ const PickupLineGenerator = () => {
             {error}
           </div>
         )}
-        
-        <PickupLineForm 
+
+        <PickupLineForm
           formData={formData}
-          setFormData={setFormData}
+          setFormData={handleFormDataChange}
           loading={loading}
           onGenerate={generatePickupLines}
         />
 
         {(loading || generatedLines.length > 0) && (
-          <PickupLineResults 
+          <PickupLineResults
             lines={generatedLines}
             loading={loading}
             onRegenerate={generatePickupLines}
