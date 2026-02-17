@@ -7,7 +7,15 @@ import { Label } from '../ui/label';
 import { Pencil, Trash2, Plus, Search, Filter } from 'lucide-react';
 import EditPickupLineModal from './EditPickupLineModal';
 
-const API_BASE = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000`;
+const resolveApiBase = () => {
+  const envBase = (import.meta.env.VITE_API_URL || '').trim();
+  const fallback = `${window.location.protocol}//${window.location.hostname}:3000`;
+  const raw = envBase || fallback;
+  const noTrailingSlash = raw.replace(/\/+$/, '');
+  return noTrailingSlash.replace(/\/api$/, '');
+};
+
+const API_BASE = resolveApiBase();
 
 const CATEGORIES = [
   'movies', 'music', 'books', 'tech', 'football', 'gaming', 'travel', 'food',
