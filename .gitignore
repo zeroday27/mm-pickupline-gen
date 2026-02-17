@@ -1,5 +1,14 @@
-# .gitignore
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment / secrets
 .env
 .env.local
 .env.*.local
 backend/.env
+
+# OS
+.DS_Store

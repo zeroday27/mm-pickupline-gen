@@ -1,10 +1,5 @@
 // backend/src/services/aiService.js
-import { config } from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-config({ path: path.resolve(__dirname, '../../backend/.env') });
+// Note: .env is loaded by index.js on startup — no need to re-load here.
 
 // Ollama configuration
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';

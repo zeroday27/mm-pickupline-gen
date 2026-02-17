@@ -7,6 +7,8 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    // Keep Vite cache out of node_modules to avoid permission issues in Docker volumes.
+    cacheDir: '/tmp/vite-cache',
     server: {
       host: true,
       port: 5173,

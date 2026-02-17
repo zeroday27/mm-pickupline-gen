@@ -12,8 +12,14 @@ COPY backend/package*.json ./
 # Install dependencies
 RUN npm install
 
+# Remove build deps to reduce image size
+RUN apk del make gcc g++ python3
+
 # Copy source code
 COPY backend/src ./src/
+
+# Run as non-root user
+USER 1000
 
 EXPOSE 3000
 

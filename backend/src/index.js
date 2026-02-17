@@ -1,6 +1,7 @@
 // backend/src/index.js
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { config } from 'dotenv';
 import path from 'path';
@@ -19,12 +20,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://frontend:5173', 'http://127.0.0.1:5173'];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://frontend:5173', 'http://127.0.0.1:5173'],
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+
+// Rate limiting
+app.use('/api/', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/generate', rateLimit({ windowMs: 60_000, max: 10, message: { error: 'Too many requests, try again later' } }));
 
 // Root route
 app.get('/', (req, res) => {
@@ -55,7 +64,8 @@ app.get('/api/pickup-lines', async (req, res) => {
     const pickupLines = await PickupLine.find(query);
     res.json(pickupLines);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching pickup lines:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -85,7 +95,8 @@ app.post('/api/generate', async (req, res) => {
 
     res.json(recommendation);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error generating pickup line:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
