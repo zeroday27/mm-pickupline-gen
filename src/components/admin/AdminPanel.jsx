@@ -8,8 +8,11 @@ import { Pencil, Trash2, Plus, Search, Filter } from 'lucide-react';
 import EditPickupLineModal from './EditPickupLineModal';
 
 const resolveApiBase = () => {
+  const isLocalBrowser = ['localhost', '127.0.0.1'].includes(window.location.hostname);
   const envBase = (import.meta.env.VITE_API_URL || '').trim();
-  const fallback = `${window.location.protocol}//${window.location.hostname}:3000`;
+  const fallback = isLocalBrowser
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : window.location.origin;
   const raw = envBase || fallback;
   const noTrailingSlash = raw.replace(/\/+$/, '');
   return noTrailingSlash.replace(/\/api$/, '');
