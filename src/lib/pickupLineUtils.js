@@ -1,6 +1,6 @@
 // src/lib/pickupLineUtils.js
 import { useState } from 'react';
-import { fetchPickupLines } from './api';
+import { fetchPickupLines, generatePickupLine } from './api';
 
 export const usePickupLineGenerator = () => {
   const [sequenceState, setSequenceState] = useState({});
@@ -16,7 +16,7 @@ export const usePickupLineGenerator = () => {
     try {
       // Use the existing fetchPickupLines function
       const data = await fetchPickupLines(category, style);
-      
+
       // Handle different possible response formats
       let lines = [];
       if (Array.isArray(data)) {
@@ -55,14 +55,31 @@ export const usePickupLineGenerator = () => {
     }
   };
 
-  const getNextInSequence = async (category, style) => {
+  const getNextInSequence = async (category, style, identity) => {
     if (!category || !style) {
       throw new Error('Category and style are required');
     }
 
     const cacheKey = getCacheKey(category, style);
-    
+
     try {
+      // Try AI generation first
+      try {
+        const aiResult = await generatePickupLine(identity, category, style);
+        if (aiResult && aiResult.text) {
+          return {
+            text: aiResult.text,
+            source: aiResult.source || 'ai',
+            isAI: aiResult.isAI,
+            index: 0,
+            total: 1
+          };
+        }
+      } catch (aiError) {
+        console.log('AI generation failed, using database:', aiError.message);
+      }
+
+      // Fall back to database
       let lines = linesCache[cacheKey];
       if (!lines) {
         lines = await fetchAndCacheLines(category, style);
@@ -70,7 +87,7 @@ export const usePickupLineGenerator = () => {
 
       let lastIndex = sequenceState[cacheKey] ?? -1;
       const nextIndex = (lastIndex + 1) % lines.length;
-      
+
       setSequenceState(prev => ({
         ...prev,
         [cacheKey]: nextIndex
@@ -78,11 +95,27 @@ export const usePickupLineGenerator = () => {
 
       return {
         text: lines[nextIndex],
+        source: 'database',
+        isAI: false,
         index: nextIndex,
         total: lines.length
       };
     } catch (error) {
       console.error('Error in getNextInSequence:', error);
+      throw error;
+    }
+  };
+
+  const generateWithAI = async (identity, interest, style) => {
+    if (!identity || !interest || !style) {
+      throw new Error('Identity, category and style are required');
+    }
+
+    try {
+      const result = await generatePickupLine(identity, interest, style);
+      return result;
+    } catch (error) {
+      console.error('Error in generateWithAI:', error);
       throw error;
     }
   };
@@ -103,6 +136,7 @@ export const usePickupLineGenerator = () => {
 
   return {
     getNextInSequence,
+    generateWithAI,
     resetSequence,
     clearCache,
     hasCache: (category, style) => {

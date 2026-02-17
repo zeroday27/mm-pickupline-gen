@@ -7,7 +7,14 @@ const router = express.Router();
 // Get all pickup lines with search and filters
 router.get('/pickup-lines', async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, category, style } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      category,
+      style,
+      review_status
+    } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
     // Build query
@@ -23,6 +30,12 @@ router.get('/pickup-lines', async (req, res) => {
     
     if (style) {
       query.style = style;
+    }
+
+    query.length = 'short';
+
+    if (review_status) {
+      query.review_status = review_status;
     }
 
     const [pickupLines, total] = await Promise.all([

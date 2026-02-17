@@ -27,16 +27,20 @@ const PickupLineGenerator = () => {
     setError(null);
 
     try {
-      // Add artificial delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const result = await pickupLineGenerator.getNextInSequence(
+      // Use the new generateWithAI which passes identity
+      const result = await pickupLineGenerator.generateWithAI(
+        formData.identity,
         formData.interests[0],
         formData.style
       );
 
       if (result && result.text) {
-        setGeneratedLines([result.text]);
+        setGeneratedLines([{
+          text: result.text,
+          isAI: result.isAI,
+          source: result.source,
+          insight: result.insight
+        }]);
       } else {
         throw new Error('Invalid pickup line generated');
       }
@@ -55,12 +59,10 @@ const PickupLineGenerator = () => {
   const handleFormDataChange = (newFormData) => {
     if (
       newFormData.interests[0] !== formData.interests[0] ||
-      newFormData.style !== formData.style
+      newFormData.style !== formData.style ||
+      newFormData.identity !== formData.identity
     ) {
-      pickupLineGenerator.resetSequence(
-        newFormData.interests[0],
-        newFormData.style
-      );
+      pickupLineGenerator.clearCache();
     }
     setFormData(newFormData);
     setError(null);
@@ -68,7 +70,7 @@ const PickupLineGenerator = () => {
 
   const handleCopy = async (text) => {
     if (!text) return;
-    
+
     try {
       await navigator.clipboard.writeText(text);
       console.log('Text copied successfully');
@@ -85,8 +87,8 @@ const PickupLineGenerator = () => {
             {error}
           </div>
         )}
-        
-        <PickupLineForm 
+
+        <PickupLineForm
           formData={formData}
           setFormData={handleFormDataChange}
           loading={loading}
@@ -94,7 +96,7 @@ const PickupLineGenerator = () => {
         />
 
         {(loading || generatedLines.length > 0) && (
-          <PickupLineResults 
+          <PickupLineResults
             lines={generatedLines}
             loading={loading}
             onRegenerate={generatePickupLines}

@@ -7,6 +7,47 @@ import { Label } from '../ui/label';
 import { Pencil, Trash2, Plus, Search, Filter } from 'lucide-react';
 import EditPickupLineModal from './EditPickupLineModal';
 
+const API_BASE = import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000`;
+
+const CATEGORIES = [
+  'movies', 'music', 'books', 'tech', 'football', 'gaming', 'travel', 'food',
+  'sports', 'art', 'fitness', 'photography', 'nature', 'cooking', 'dancing',
+  'business', 'education', 'health', 'beauty', 'fashion', 'pets', 'science',
+  'history', 'other'
+];
+
+const STYLES = ['funny', 'romantic', 'flirty', 'cute', 'cheesy', 'poetic', 'sarcastic', 'sweet', 'bold', 'other'];
+const REVIEW_STATUSES = ['staging', 'reviewed', 'approved', 'rejected'];
+
+const NEW_LINE_TEMPLATE = {
+  text: '',
+  burmese_text: '',
+  english_source_text: '',
+  source_url: '',
+  license_note: '',
+  category: '',
+  style: '',
+  length: 'short',
+  review_status: 'staging',
+  quality_score: 70,
+  safety_score: 95,
+  tags: [],
+  language: 'my'
+};
+
+const statusClassName = (status) => {
+  switch (status) {
+    case 'approved':
+      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+    case 'reviewed':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+    case 'rejected':
+      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+    default:
+      return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300';
+  }
+};
+
 const AdminPanel = () => {
   const [pickupLines, setPickupLines] = useState([]);
   const [page, setPage] = useState(1);
@@ -16,7 +57,8 @@ const AdminPanel = () => {
   const [filters, setFilters] = useState({
     search: '',
     category: '',
-    style: ''
+    style: '',
+    review_status: ''
   });
   const [credentials, setCredentials] = useState({
     username: '',
@@ -27,11 +69,11 @@ const AdminPanel = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     const base64Credentials = btoa(`${credentials.username}:${credentials.password}`);
-    
+
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/login`, {
+      const response = await fetch(`${API_BASE}/api/admin/login`, {
         headers: {
-          'Authorization': `Basic ${base64Credentials}`
+          Authorization: `Basic ${base64Credentials}`
         }
       });
 
@@ -50,18 +92,18 @@ const AdminPanel = () => {
   const handleSave = async (updatedLine) => {
     try {
       const method = updatedLine._id ? 'PUT' : 'POST';
-      const url = updatedLine._id 
-        ? `${import.meta.env.VITE_API_URL}/api/admin/pickup-lines/${updatedLine._id}`
-        : `${import.meta.env.VITE_API_URL}/api/admin/pickup-lines`;
+      const url = updatedLine._id
+        ? `${API_BASE}/api/admin/pickup-lines/${updatedLine._id}`
+        : `${API_BASE}/api/admin/pickup-lines`;
 
       const authHeader = localStorage.getItem('adminAuth');
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${authHeader}`
+          Authorization: `Basic ${authHeader}`
         },
-        body: JSON.stringify(updatedLine),
+        body: JSON.stringify(updatedLine)
       });
 
       if (!response.ok) {
@@ -81,10 +123,10 @@ const AdminPanel = () => {
 
     try {
       const authHeader = localStorage.getItem('adminAuth');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/pickup-lines/${id}`, {
+      const response = await fetch(`${API_BASE}/api/admin/pickup-lines/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Basic ${authHeader}`
+          Authorization: `Basic ${authHeader}`
         }
       });
 
@@ -102,25 +144,22 @@ const AdminPanel = () => {
   const fetchPickupLines = async () => {
     setLoading(true);
     try {
-      const queryParams = new URLSearchParams({
-        page,
-        ...filters,
+      const queryParams = new URLSearchParams({ page: String(page) });
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) queryParams.set(key, value);
       });
 
       const authHeader = localStorage.getItem('adminAuth');
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/admin/pickup-lines?${queryParams}`,
-        {
-          headers: {
-            'Authorization': `Basic ${authHeader}`
-          }
+      const response = await fetch(`${API_BASE}/api/admin/pickup-lines?${queryParams}`, {
+        headers: {
+          Authorization: `Basic ${authHeader}`
         }
-      );
+      });
 
       if (response.ok) {
         const data = await response.json();
         setPickupLines(data.pickupLines);
-        setTotalPages(data.pages);
+        setTotalPages(data.pages || 1);
       } else if (response.status === 401) {
         setIsAuthenticated(false);
         localStorage.removeItem('adminAuth');
@@ -130,6 +169,14 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateFilter = (key, value) => {
+    setPage(1);
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value
+    }));
   };
 
   useEffect(() => {
@@ -188,82 +235,92 @@ const AdminPanel = () => {
     <div className="min-h-screen p-4">
       <div className="max-w-6xl mx-auto">
         <Card>
-<CardHeader>
-  <div className="flex justify-between items-center">
-    <div className="flex-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <CardTitle>Pickup Lines Management</CardTitle>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            Welcome, Admin
-          </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              localStorage.removeItem('adminAuth');
-              setIsAuthenticated(false);
-            }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
-          >
-            Logout
-          </Button>
-          <Button 
-            onClick={() => setEditingLine({ text: '', category: '', style: '' })}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add New
-          </Button>
-        </div>
-      </div>
-    </div>
-  </div>
-</CardHeader>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <CardTitle>Pickup Lines Management</CardTitle>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Curated content workflow
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        localStorage.removeItem('adminAuth');
+                        setIsAuthenticated(false);
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
+                    >
+                      Logout
+                    </Button>
+                    <Button
+                      onClick={() => setEditingLine(NEW_LINE_TEMPLATE)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add New
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
           <CardContent>
             <div className="mb-6 space-y-4">
-              <div className="flex gap-4">
-                <div className="flex-1 relative">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <Filter className="h-4 w-4" />
+                Filters
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div className="relative md:col-span-2">
                   <Input
                     placeholder="Search pickup lines..."
                     value={filters.search}
-                    onChange={(e) => setFilters({
-                      ...filters,
-                      search: e.target.value
-                    })}
+                    onChange={(e) => updateFilter('search', e.target.value)}
                     className="pl-10"
                   />
                   <Search className="h-4 w-4 absolute left-3 top-3 text-gray-500" />
                 </div>
+
                 <select
                   className="px-3 py-2 border rounded-md dark:bg-gray-800 min-w-[150px]"
                   value={filters.category}
-                  onChange={(e) => setFilters({
-                    ...filters,
-                    category: e.target.value
-                  })}
+                  onChange={(e) => updateFilter('category', e.target.value)}
                 >
                   <option value="">All Categories</option>
-                  <option value="movies">Movies</option>
-                  <option value="music">Music</option>
-                  <option value="books">Books</option>
-                  <option value="tech">Technology</option>
-                  <option value="football">Football</option>
-                  <option value="gaming">Gaming</option>
+                  {CATEGORIES.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
                 </select>
+
                 <select
                   className="px-3 py-2 border rounded-md dark:bg-gray-800 min-w-[150px]"
                   value={filters.style}
-                  onChange={(e) => setFilters({
-                    ...filters,
-                    style: e.target.value
-                  })}
+                  onChange={(e) => updateFilter('style', e.target.value)}
                 >
                   <option value="">All Styles</option>
-                  <option value="funny">Funny</option>
-                  <option value="romantic">Romantic</option>
+                  {STYLES.map((style) => (
+                    <option key={style} value={style}>{style}</option>
+                  ))}
+                </select>
+
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <select
+                  className="px-3 py-2 border rounded-md dark:bg-gray-800 min-w-[150px]"
+                  value={filters.review_status}
+                  onChange={(e) => updateFilter('review_status', e.target.value)}
+                >
+                  <option value="">All Review Statuses</option>
+                  {REVIEW_STATUSES.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -275,15 +332,36 @@ const AdminPanel = () => {
             ) : (
               <div className="space-y-4">
                 {pickupLines.map((line) => (
-                  <div 
-                    key={line._id} 
+                  <div
+                    key={line._id}
                     className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
                   >
                     <div className="flex-1">
-                      <p className="text-lg dark:text-white">{line.text}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-lg dark:text-white">{line.burmese_text || line.text}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Category: {line.category} | Style: {line.style}
                       </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <span className={`px-2 py-1 rounded-full ${statusClassName(line.review_status)}`}>
+                          {line.review_status || 'staging'}
+                        </span>
+                        <span className="px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                          Quality {line.quality_score ?? 70}
+                        </span>
+                        <span className="px-2 py-1 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                          Safety {line.safety_score ?? 95}
+                        </span>
+                        {line.source_url && (
+                          <a
+                            href={line.source_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:underline"
+                          >
+                            Source
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div className="flex space-x-2 ml-4">
                       <Button
@@ -306,16 +384,15 @@ const AdminPanel = () => {
                   </div>
                 ))}
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex justify-center space-x-2 mt-6">
                     {Array.from({ length: totalPages }, (_, i) => (
                       <Button
                         key={i + 1}
-                        variant={page === i + 1 ? "default" : "outline"}
+                        variant={page === i + 1 ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setPage(i + 1)}
-                        className={page === i + 1 ? "bg-purple-600 text-white" : ""}
+                        className={page === i + 1 ? 'bg-purple-600 text-white' : ''}
                       >
                         {i + 1}
                       </Button>

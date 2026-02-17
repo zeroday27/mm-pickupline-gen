@@ -10,7 +10,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://backend:3000
+      - VITE_API_URL=http://localhost:3000
     depends_on:
       - backend
 
@@ -21,15 +21,43 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - ./backend:/app/backend
+      - /app/backend/node_modules
     environment:
       - NODE_ENV=development
       - MONGODB_URI=mongodb://mongodb:27017/pickuplines
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=devadmin
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
+      - MINIMAX_BASE_URL=https://api.minimaxi.chat
+      - REDIS_URL=redis://redis:6379
     depends_on:
       - mongodb
+      - redis
+
+  ingest:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    working_dir: /app/backend
+    volumes:
+      - ./backend:/app/backend
+      - /app/backend/node_modules
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/pickuplines
+    command:
+      - npm
+      - run
+      - ingest:staging
+      - --
+      - --file
+      - /app/backend/data/staging/pickuplines.sample.json
+      - --dry-run
+    depends_on:
+      - mongodb
+    profiles:
+      - tools
 
   mongodb:
     image: mongo:latest
@@ -38,5 +66,13 @@ services:
     volumes:
       - mongodb_data:/data/db
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   mongodb_data:
+  redis_data:
