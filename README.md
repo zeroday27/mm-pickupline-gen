@@ -38,3 +38,5 @@ docker compose --profile tools run --rm ingest npm run ingest:staging -- --file 
 
 ## Daily log
 2026-02-18: .
+
+2026-02-18: !
