@@ -35,3 +35,6 @@ Use your own file:
 ```bash
 docker compose --profile tools run --rm ingest npm run ingest:staging -- --file /app/backend/data/staging/your-file.json
 ```
+
+## Daily log
+2026-02-18: .
