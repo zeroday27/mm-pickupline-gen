@@ -28,8 +28,14 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            echo "==> Stopping existing containers..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+            echo "==> Stopping all project containers..."
+            docker compose down --remove-orphans || true
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans || true
+
+            echo "==> Killing any process holding ports 3000/5173..."
+            sudo fuser -k 3000/tcp 2>/dev/null || true
+            sudo fuser -k 5173/tcp 2>/dev/null || true
+            sleep 2
 
             echo "==> Rebuilding Docker images..."
             docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
