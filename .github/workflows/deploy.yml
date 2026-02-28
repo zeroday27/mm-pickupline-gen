@@ -9,6 +9,7 @@ jobs:
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    environment: main-aws
 
     steps:
       - name: Deploy via SSH
@@ -17,7 +18,6 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          script_stop: true
           script: |
             set -euo pipefail
 
