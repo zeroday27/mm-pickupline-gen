@@ -1,13 +1,15 @@
 # Production overrides — layer on top of docker-compose.yml
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# NOTE: Do NOT re-declare 'ports' here. Docker Compose merges port arrays
+# (instead of replacing), causing duplicate bindings and startup failures.
+# Port bindings are inherited from docker-compose.yml.
 services:
   frontend:
     volumes: [] # Remove dev hot-reload mounts
     environment:
       - NODE_ENV=production
       - VITE_API_URL=${VITE_API_URL:-}
-    ports:
-      - "127.0.0.1:5173:5173" # Bind to localhost only (Nginx proxies)
     restart: unless-stopped
 
   backend:
@@ -20,8 +22,6 @@ services:
       - MINIMAX_API_KEY=${MINIMAX_API_KEY:-}
       - MINIMAX_BASE_URL=https://api.minimaxi.chat
       - REDIS_URL=redis://redis:6379
-    ports:
-      - "127.0.0.1:3000:3000" # Bind to localhost only
     restart: unless-stopped
 
   mongodb:
