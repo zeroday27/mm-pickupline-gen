@@ -7,7 +7,7 @@ export default [
   js.configs.recommended,
   { files: ['**/*.{js,jsx,mjs,cjs}'], languageOptions: { globals: globals.node },
     rules: { 'no-unused-vars': ['error', { caughtErrors: 'none' }] } },
-  { files: ['src/**/*.{js,jsx}'], plugins: { react }, languageOptions: {
+  { files: ['src/**/*.{js,jsx}', 'tests/browser/*.js'], plugins: { react }, languageOptions: {
     globals: globals.browser, parserOptions: { ecmaFeatures: { jsx: true } }
   }, rules: { 'react/jsx-uses-vars': 'error', 'react/jsx-uses-react': 'error', 'react/jsx-no-undef': 'error' } },
   // Data-generation templates intentionally share a positional callback signature.

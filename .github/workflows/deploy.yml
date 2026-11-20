@@ -33,6 +33,8 @@ jobs:
       - run: npm audit --audit-level=high
       - run: npm audit --prefix backend --audit-level=high
       - run: npm run build
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm run test:ui
       - run: npx --no-install wrangler deploy --dry-run --containers-rollout none
       - name: Test production API image against MongoDB
         run: |
@@ -58,6 +60,37 @@ jobs:
           format: cyclonedx-json
           artifact-name: pickup.cdx.json
           output-file: pickup.cdx.json
+
+  dependency-track:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPENDENCY_TRACK_URL != ''
+    needs: [security, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: pickup.cdx.json
+      - uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /pickup-inventory
+          secret-name: DEPENDENCY_TRACK_API_KEY
+          include-imports: false
+      - name: Submit release inventory
+        env:
+          TRACK_URL: ${{ vars.DEPENDENCY_TRACK_URL }}
+          PROJECT: ${{ vars.DEPENDENCY_TRACK_PROJECT_UUID }}
+        run: |
+          curl --proto '=https' --fail-with-body --silent --show-error \
+            -H "X-Api-Key: ${DEPENDENCY_TRACK_API_KEY:?}" -F "project=${PROJECT:?}" \
+            -F 'bom=@pickup.cdx.json' "${TRACK_URL%/}/api/v1/bom"
 
   deploy:
     needs: [check, security]

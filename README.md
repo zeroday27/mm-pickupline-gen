@@ -13,6 +13,10 @@ The Worker serves the Vite build and routes `/api/*` to one named Cloudflare Con
 4. After confirming Workers Paid and Atlas connectivity, set the repository variable `ENABLE_PRODUCTION_DEPLOY=true`. Require the security checks and the `check` job on pull requests to main. It builds the frontend, bundles the Worker, builds the production API image and tests admin authentication and recommendations against a disposable MongoDB. A passing main build deploys the Worker, image, assets and runtime secrets together. The final smoke check loads the site and queries Atlas through the public API.
 5. Verify a recommendation and admin login on workers.dev before moving the existing hostname to the Worker. Keep the Lightsail instance and backup available through cutover. To roll back a code release, revert its commit and deploy the last working source through the same pipeline. If switching traffic back to Lightsail, reconcile writes made in Atlas since cutover first.
 
+### Dependency inventory
+
+CI stores a CycloneDX SBOM as the `pickup.cdx.json` workflow artifact. To enable submission on main, configure the repository variable `DEPENDENCY_TRACK_URL` with your HTTPS instance URL, set `DEPENDENCY_TRACK_PROJECT_UUID` for the existing project, and grant the production Infisical identity read access to `prod:/pickup-inventory/DEPENDENCY_TRACK_API_KEY`. Use a project-scoped upload key.
+
 ## Docker Quick Start
 
 Run app stack:

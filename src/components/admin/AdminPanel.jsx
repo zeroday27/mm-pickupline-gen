@@ -255,7 +255,7 @@ const AdminPanel = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                                        setAuthHeader(null);
+                        setAuthHeader(null);
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
                     >
