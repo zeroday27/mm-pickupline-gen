@@ -1,49 +1,73 @@
-name: Deploy to Lightsail
-
+name: Check and deploy
 on:
+  pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
-    name: Deploy to Production
+  check:
     runs-on: ubuntu-latest
-    environment: main-aws
-
+    timeout-minutes: 15
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USER }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          script: |
-            set -euo pipefail
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx --no-install wrangler deploy --dry-run
+      - name: Test production API image against MongoDB
+        run: |
+          docker build -f Dockerfile.backend -t pickup-api .
+          docker network create pickup-ci
+          docker run -d --name mongo --network pickup-ci mongo:8.2
+          docker run -d --name api --network pickup-ci -p 127.0.0.1:3000:3000 \
+            -e MONGODB_URI=mongodb://mongo:27017/pickup_ci \
+            -e ADMIN_USERNAME=ci -e ADMIN_PASSWORD=ci-only pickup-api
+          node scripts/smoke.mjs
 
-            DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
-            cd "$DEPLOY_DIR"
-
-            echo "==> Pulling latest code from main..."
-            git fetch origin main
-            git reset --hard origin/main
-
-            echo "==> Stopping all project containers..."
-            docker compose down --remove-orphans || true
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans || true
-
-            echo "==> Killing any process holding ports 3000/5173..."
-            sudo fuser -k 3000/tcp 2>/dev/null || true
-            sudo fuser -k 5173/tcp 2>/dev/null || true
-            sleep 2
-
-            echo "==> Rebuilding Docker images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
-
-            echo "==> Starting containers..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-            echo "==> Cleaning up dangling images..."
-            docker image prune -f
-
-            echo "==> Deploy complete!"
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: cloudflare-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Deploy Worker, assets and API container
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          set -eu
+          : "${CLOUDFLARE_ACCOUNT_ID:?}" "${CLOUDFLARE_API_TOKEN:?}" "${MONGODB_URI:?}" "${ADMIN_USERNAME:?}" "${ADMIN_PASSWORD:?}" "${APP_URL:?}"
+          secret_file=$(mktemp --suffix=.json)
+          trap 'rm -f "$secret_file"' EXIT
+          node -e 'const keys = ["MONGODB_URI","ADMIN_USERNAME","ADMIN_PASSWORD"]; process.stdout.write(JSON.stringify(Object.fromEntries(keys.map(k => [k, process.env[k]]))))' > "$secret_file"
+          npx --no-install wrangler deploy --secrets-file "$secret_file"
+      - name: Verify production site and database
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: node scripts/smoke.mjs --production

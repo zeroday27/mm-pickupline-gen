@@ -17,6 +17,7 @@ import adminRoutes from './routes/admin.js';
 import { recommendPickupLine } from './services/recommendationService.js';
 
 const app = express();
+if (process.env.WORKER_PROXY === '1') app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -45,6 +46,15 @@ app.get('/', (req, res) => {
       admin: '/api/admin'
     }
   });
+});
+
+app.get('/api/health', async (_req, res) => {
+  try {
+    await mongoose.connection.db.admin().ping();
+    res.json({ status: 'ok' });
+  } catch {
+    res.status(503).json({ status: 'unavailable' });
+  }
 });
 
 // Public routes

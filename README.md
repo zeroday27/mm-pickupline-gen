@@ -1,6 +1,18 @@
 # mm-pickupline-gen
 This project is for PickUp Line generator project with Myanmar Language
 
+## Production on Cloudflare and Atlas
+
+The Worker serves the Vite build and routes `/api/*` to one named Cloudflare Container. The container runs the existing Express API and uses Mongoose to connect to Atlas. It sleeps after ten idle minutes, so the first API request after an idle period can take longer. The deployment requires a Workers Paid account with Containers enabled.
+
+### First deployment
+
+1. Enable a workers.dev subdomain in the target account. Create an Atlas database user with `readWrite` on the application database only. Include that database name in the Atlas TLS connection string, for example `mongodb+srv://USER:PASSWORD@CLUSTER/pickuplines`. Configure Atlas network access for the container's outbound path. For a restricted Atlas IP access list, arrange fixed egress or a private network path accessible from the container before cutover.
+2. If moving existing records, back up the source database and restore into a fresh Atlas database using MongoDB Database Tools. Keep admin edits paused during the final copy. Compare collection counts, including approved and legacy records. The deployment never seeds the database.
+3. In GitHub Settings → Environments, create `production`. Add variables `CLOUDFLARE_ACCOUNT_ID` and `APP_URL` (initially `https://mm-pickupline-gen.<your-subdomain>.workers.dev`). Add secrets `CLOUDFLARE_API_TOKEN`, `MONGODB_URI`, `ADMIN_USERNAME` and `ADMIN_PASSWORD`. Scope the token to the target account with Worker script and Containers deployment access. Store the Atlas URI only in server-side secrets. Restrict deployments to `main` and configure required reviewers if manual release approval is desired.
+4. Require the `check` job on pull requests to main. It builds the frontend, bundles the Worker, builds the production API image and tests admin authentication and recommendations against a disposable MongoDB. A passing main build deploys the Worker, image, assets and runtime secrets together. The final smoke check loads the site and queries Atlas through the public API.
+5. Verify a recommendation and admin login on workers.dev before moving the existing hostname to the Worker. Keep the Lightsail instance and backup available through cutover. To roll back a code release, revert its commit and deploy the last working source through the same pipeline. If switching traffic back to Lightsail, reconcile writes made in Atlas since cutover first.
+
 ## Docker Quick Start
 
 Run app stack:
