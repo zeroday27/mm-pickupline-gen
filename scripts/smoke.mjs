@@ -29,9 +29,17 @@ if (process.argv.includes('--production')) {
   const line = { text: 'CI sample', category: 'travel', style: 'cute' };
   const created = await fetch(admin, { method: 'POST', headers, body: JSON.stringify(line) });
   assert.equal(created.status, 201);
+  const item = new URL(admin.href + '/' + (await created.json())._id);
   const generated = await fetch(new URL('/api/generate', origin), {
     method: 'POST', headers, body: JSON.stringify({ interest: 'travel', style: 'cute' })
   });
   assert.equal(generated.status, 200);
   assert.equal((await generated.json()).text, line.text);
+  const edited = await fetch(item, { method: 'PUT', headers, body: JSON.stringify({ review_status: 'staging' }) });
+  assert.equal(edited.status, 200);
+  const publicList = await fetch(new URL('/api/pickup-lines', origin));
+  assert.deepEqual(await publicList.json(), []);
+  const removed = await fetch(item, { method: 'DELETE', headers });
+  assert.equal(removed.status, 200);
+
 }
