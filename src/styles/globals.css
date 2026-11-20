@@ -74,3 +74,50 @@
     @apply bg-background text-foreground;
   }
 }
+@font-face {
+  font-family: 'Yangon Handwriting';
+  src: url('/brand/Burmese_Handwriting.ttf') format('truetype');
+  font-display: swap;
+}
+.site-shell {
+  --surface: #fff;
+  --soft: #fafafa;
+  --ink: #0b1220;
+  --line: #d1d1d6;
+  --accent: #f6821f;
+  min-height: 100vh;
+  color: var(--ink);
+  background: var(--soft);
+  font-family: 'Inter Tight Variable', system-ui, sans-serif;
+}
+.dark .site-shell { --surface: #161e2c; --soft: #0b1220; --ink: #f2f4f7; --line: #3b4658; }
+.masthead, .studio, .site-footer { width: min(1120px, 90%); margin-inline: auto; }
+.masthead, .site-footer { display: flex; align-items: center; justify-content: space-between; padding-block: 18px; }
+.masthead { border-bottom: 1px solid var(--line); }
+.masthead a { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 24px; letter-spacing: -.045em; }
+.masthead img { width: 37px; padding: 4px; background: white; border-radius: 8px; }
+.studio { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 96px); padding-block: clamp(32px, 6vw, 88px); }
+.intro h1 { font-size: clamp(54px, 6.8vw, 100px); font-weight: 650; line-height: .95; letter-spacing: -.068em; }
+.intro h1 em { color: #b85806; font-style: normal; }
+.dark .intro h1 em { color: #ffad52; }
+.intro > p { max-width: 36ch; font-size: 18px; margin-block: 22px 34px; }
+.sample { background: #ffca87; padding: 24px 30px 34px; border-radius: 18px 18px 40px 3px; color: #232f3e; box-shadow: inset 5px 0 #f6821f; }
+.sample figcaption, .site-footer span { font: 12px 'JetBrains Mono Variable', monospace; }
+.sample blockquote { font: 32px/1.8 'Yangon Handwriting', sans-serif; margin-top: 15px; overflow-wrap: anywhere; }
+.composer { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: clamp(20px, 3vw, 38px); display: grid; gap: 22px; }
+.composer h2 { font-size: 30px; font-weight: 650; letter-spacing: -.045em; }
+.composer label, .composer legend { font-weight: 550; }
+.composer select { width: 100%; display: block; padding: 12px; margin-top: 8px; background: var(--soft); border: 1px solid var(--line); border-radius: 8px; }
+.tones { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.tones input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.tones span { display: inline-block; cursor: pointer; padding: 7px 13px; border: 1px solid var(--line); border-radius: 30px; font-size: 14px; }
+.tones input:checked + span { background: #ffe3bd; color: #5c2b02; border-color: #b85806; }
+.tones input:focus-visible + span, .composer :focus-visible { outline: 3px solid #e3700b; outline-offset: 2px; }
+button.generate { display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--accent); border-radius: 10px; color: #0b1220; padding: 14px; font-weight: 650; }
+button.generate:hover { background: #ffad52; }
+.site-footer { border-top: 1px solid var(--line); font-weight: 600; }
+@media (max-width: 720px) {
+  .studio { grid-template-columns: 1fr; }
+  .sample { padding: 14px 20px; }
+  .sample blockquote { font-size: 24px; margin-top: 4px; }
+}

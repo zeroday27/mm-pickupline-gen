@@ -1,26 +1,11 @@
-# Dockerfile.backend
-FROM node:18-alpine
-
+FROM node:24-alpine AS tools
 WORKDIR /app/backend
-
-# Install build dependencies for bcrypt
-RUN apk add --no-cache make gcc g++ python3
-
-# Copy backend package files
 COPY backend/package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Remove build deps to reduce image size
-RUN apk del make gcc g++ python3
-
-# Copy source code
+RUN npm ci --omit=dev
 COPY backend/src ./src/
-
-# Run as non-root user
-USER 1000
-
+FROM tools AS runtime
+# The running API only needs Node. Keep package managers in the tools stage.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+USER node
 EXPOSE 3000
-
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

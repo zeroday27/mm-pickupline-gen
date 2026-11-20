@@ -1,49 +1,142 @@
-name: Deploy to Lightsail
-
+name: Check and deploy
 on:
+  pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
-    name: Deploy to Production
+  security:
+    uses: ./.github/workflows/security.yml
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: read
+
+  check:
     runs-on: ubuntu-latest
-    environment: main-aws
-
+    timeout-minutes: 15
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USER }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          script: |
-            set -euo pipefail
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint GitHub workflows
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo rhysd/actionlint@sha256:1d74bfc9fd1963af8f89a7c22afaaafd42f49aad711a09951d02cb996398f61d -color .github/workflows/*.yml
+      - run: npm run lint
+      - run: npm test
+      - run: npm audit --audit-level=high
+      - run: npm audit --prefix backend --audit-level=high
+      - run: npm run build
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm run test:ui
+      - run: npx --no-install wrangler deploy --dry-run --containers-rollout none
+      - name: Test production API image against MongoDB
+        run: |
+          docker build -f Dockerfile.backend -t pickup-api .
+          docker network create pickup-ci
+          docker run -d --name mongo --network pickup-ci mongo:8.2
+          docker run -d --name api --network pickup-ci -p 127.0.0.1:3000:3000 \
+            -e MONGODB_URI=mongodb://mongo:27017/pickup_ci \
+            -e ADMIN_USERNAME=ci -e ADMIN_PASSWORD=ci-only pickup-api
+          node scripts/smoke.mjs
 
-            DEPLOY_DIR="${{ secrets.DEPLOY_PATH }}"
-            cd "$DEPLOY_DIR"
+      - name: Scan the API image
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          image-ref: pickup-api
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Generate CycloneDX inventory
+        uses: anchore/sbom-action@73fc65f9f613b4bb1305b6957eddd1217aa991ff
+        with:
+          format: cyclonedx-json
+          artifact-name: pickup.cdx.json
+          output-file: pickup.cdx.json
 
-            echo "==> Pulling latest code from main..."
-            git fetch origin main
-            git reset --hard origin/main
+  dependency-track:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPENDENCY_TRACK_URL != ''
+    needs: [security, check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: pickup.cdx.json
+      - uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /pickup-inventory
+          secret-name: DEPENDENCY_TRACK_API_KEY
+          include-imports: false
+      - name: Submit release inventory
+        env:
+          TRACK_URL: ${{ vars.DEPENDENCY_TRACK_URL }}
+          PROJECT: ${{ vars.DEPENDENCY_TRACK_PROJECT_UUID }}
+        run: |
+          curl --proto '=https' --fail-with-body --silent --show-error \
+            -H "X-Api-Key: ${DEPENDENCY_TRACK_API_KEY:?}" -F "project=${PROJECT:?}" \
+            -F 'bom=@pickup.cdx.json' "${TRACK_URL%/}/api/v1/bom"
 
-            echo "==> Stopping all project containers..."
-            docker compose down --remove-orphans || true
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans || true
-
-            echo "==> Killing any process holding ports 3000/5173..."
-            sudo fuser -k 3000/tcp 2>/dev/null || true
-            sudo fuser -k 5173/tcp 2>/dev/null || true
-            sleep 2
-
-            echo "==> Rebuilding Docker images..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
-
-            echo "==> Starting containers..."
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-            echo "==> Cleaning up dangling images..."
-            docker image prune -f
-
-            echo "==> Deploy complete!"
+  deploy:
+    needs: [check, security]
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    environment: production
+    concurrency:
+      group: cloudflare-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Load deployment secrets
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: prod
+          secret-path: /pickup
+          include-imports: false
+      - name: Deploy Worker, assets and API container
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          set -eu
+          : "${CLOUDFLARE_ACCOUNT_ID:?}" "${CLOUDFLARE_API_TOKEN:?}" "${MONGODB_URI:?}" "${ADMIN_USERNAME:?}" "${ADMIN_PASSWORD:?}" "${APP_URL:?}"
+          secret_file=$(mktemp --suffix=.json)
+          trap 'rm -f "$secret_file"' EXIT
+          node -e 'const keys = ["MONGODB_URI","ADMIN_USERNAME","ADMIN_PASSWORD"]; process.stdout.write(JSON.stringify(Object.fromEntries(keys.map(k => [k, process.env[k]]))))' > "$secret_file"
+          npx --no-install wrangler deploy --secrets-file "$secret_file"
+      - name: Verify production site and database
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: node scripts/smoke.mjs --production

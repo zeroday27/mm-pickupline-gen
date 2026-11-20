@@ -15,3 +15,7 @@ backend/data/mongo-backup/
 
 # OS
 .DS_Store
+.wrangler/
+.dev.vars*
+
+test-results/

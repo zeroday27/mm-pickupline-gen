@@ -1,23 +1,12 @@
-// backend/src/middleware/auth.js
-export const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+import { timingSafeEqual } from 'node:crypto';
 
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+export function authMiddleware(req, res, next) {
+  const { ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;
+  const header = req.headers.authorization || '';
+  if (ADMIN_USERNAME && ADMIN_PASSWORD && header.startsWith('Basic ')) {
+    const actual = Buffer.from(header.slice(6), 'base64');
+    const expected = Buffer.from(`${ADMIN_USERNAME}:${ADMIN_PASSWORD}`);
+    if (actual.length === expected.length && timingSafeEqual(actual, expected)) return next();
   }
-
-  try {
-    const base64Credentials = authHeader.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-    const [username, password] = credentials.split(':');
-
-    if (username !== process.env.ADMIN_USERNAME || 
-        password !== process.env.ADMIN_PASSWORD) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid credentials' });
-  }
-};
+  return res.status(401).json({ error: 'Unauthorized' });
+}

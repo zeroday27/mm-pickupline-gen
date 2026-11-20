@@ -39,7 +39,7 @@ export async function fetchPickupLines(category, style) {
 }
 
 // Generate pickup line using AI (falls back to database if no AI)
-export async function generatePickupLine(identity, interest, style, language = 'myanmar') {
+export async function generatePickupLine(identity, interest, style, language = 'my') {
   try {
     const url = buildApiUrl('/api/generate');
 

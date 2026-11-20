@@ -39,6 +39,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+      target: tools
     working_dir: /app/backend
     volumes:
       - ./backend:/app/backend

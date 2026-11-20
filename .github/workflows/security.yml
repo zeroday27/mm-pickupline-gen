@@ -1,0 +1,51 @@
+name: Security
+on:
+  workflow_call:
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@bcfb9cce635345aac9996cedc19b2de8e01b894f
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_COMMENTS: false
+
+  sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: [javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@e9c4b4b153701845b921f167180044d14fe89b94
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@e9c4b4b153701845b921f167180044d14fe89b94
+        with:
+          output: sarif
+      - name: Gate high severity findings
+        run: |
+          jq -se '[.[].runs[] | . as $run | .results[]? | .ruleId as $id
+            | ($run.tool.driver, $run.tool.extensions[]?) | .rules[]? | select(.id == $id)
+            | (.properties["security-severity"] // "0" | tonumber) | select(. >= 7)] | length == 0' sarif/*.sarif

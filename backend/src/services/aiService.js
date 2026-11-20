@@ -248,7 +248,7 @@ const generateWithOllama = async (prompt) => {
   }
 };
 
-const generateWithMiniMax = async (prompt, language) => {
+const generateWithMiniMax = async (prompt) => {
   try {
     const response = await fetch(`${MINIMAX_BASE_URL}/v1/text/chatcompletion_v2`, {
       method: 'POST',
