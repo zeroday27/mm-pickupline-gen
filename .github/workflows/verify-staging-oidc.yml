@@ -1,0 +1,30 @@
+name: Verify staging OIDC
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    permissions:
+      id-token: write
+    steps:
+      - name: Read staging sentinel
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          oidc-audience: infisical-mm-pickupline-gen-staging
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: staging
+          secret-path: /pickup
+          secret-name: STAGING_OIDC_CHECK
+          include-imports: false
+      - name: Confirm sentinel is present
+        shell: bash
+        run: test -n "${STAGING_OIDC_CHECK:-}"
