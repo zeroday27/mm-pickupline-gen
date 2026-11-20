@@ -72,8 +72,8 @@ app.get('/api/pickup-lines', async (req, res) => {
         { review_status: { $exists: false } }
       ]
     };
-    if (category) query.category = category;
-    if (style) query.style = style;
+    if (category) query.category = { $eq: category };
+    if (style) query.style = { $eq: style };
     query.length = 'short';
 
     const pickupLines = await PickupLine.find(query);

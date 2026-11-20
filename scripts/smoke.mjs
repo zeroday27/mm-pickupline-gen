@@ -30,6 +30,11 @@ if (process.argv.includes('--production')) {
   const created = await fetch(admin, { method: 'POST', headers, body: JSON.stringify(line) });
   assert.equal(created.status, 201);
   const item = new URL(admin.href + '/' + (await created.json())._id);
+  const matching = await fetch(new URL('/api/pickup-lines?category=travel&style=cute', origin));
+  assert.equal(matching.status, 200);
+  assert.deepEqual((await matching.json()).map(row => row.text), [line.text]);
+  const otherCategory = await fetch(new URL('/api/pickup-lines?category=music', origin));
+  assert.deepEqual(await otherCategory.json(), []);
   const generated = await fetch(new URL('/api/generate', origin), {
     method: 'POST', headers, body: JSON.stringify({ interest: 'travel', style: 'cute' })
   });
@@ -39,6 +44,11 @@ if (process.argv.includes('--production')) {
   assert.equal(edited.status, 200);
   const publicList = await fetch(new URL('/api/pickup-lines', origin));
   assert.deepEqual(await publicList.json(), []);
+  const staged = await fetch(new URL(admin.href + '?category=travel&style=cute&review_status=staging&search=sample'), { headers });
+  assert.equal(staged.status, 200);
+  const listing = await staged.json();
+  assert.equal(listing.total, 1);
+  assert.deepEqual(listing.pickupLines.map(row => row.text), [line.text]);
   const removed = await fetch(item, { method: 'DELETE', headers });
   assert.equal(removed.status, 200);
 
