@@ -28,7 +28,7 @@ export function ThemeToggle({ className }) {
       size="icon"
       onClick={toggleTheme}
       className={cn(
-        "fixed top-4 right-4 w-10 h-10 rounded-full",
+        "w-10 h-10 rounded-full",
         "bg-white dark:bg-gray-800",
         "border border-gray-200 dark:border-gray-700",
         "hover:bg-gray-100 dark:hover:bg-gray-700",

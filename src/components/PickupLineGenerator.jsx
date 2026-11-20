@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import PickupLineForm from './PickupLineForm';
 import PickupLineResults from './PickupLineResults';
-import { usePickupLineGenerator } from '../lib/pickupLineUtils';
+import { generatePickupLine } from '../lib/api';
 
 const PickupLineGenerator = () => {
   const [formData, setFormData] = useState({
@@ -15,7 +15,7 @@ const PickupLineGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const pickupLineGenerator = usePickupLineGenerator();
+
 
   const generatePickupLines = async () => {
     if (!formData.interests.length || !formData.style || !formData.identity) {
@@ -27,8 +27,7 @@ const PickupLineGenerator = () => {
     setError(null);
 
     try {
-      // Use the new generateWithAI which passes identity
-      const result = await pickupLineGenerator.generateWithAI(
+      const result = await generatePickupLine(
         formData.identity,
         formData.interests[0],
         formData.style
@@ -57,13 +56,6 @@ const PickupLineGenerator = () => {
   };
 
   const handleFormDataChange = (newFormData) => {
-    if (
-      newFormData.interests[0] !== formData.interests[0] ||
-      newFormData.style !== formData.style ||
-      newFormData.identity !== formData.identity
-    ) {
-      pickupLineGenerator.clearCache();
-    }
     setFormData(newFormData);
     setError(null);
   };
@@ -80,10 +72,18 @@ const PickupLineGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-pink-50 dark:from-gray-950 dark:to-gray-900 transition-colors duration-200 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="studio">
+      <section className="intro">
+        <h1>Burmese<br /><em>pickup lines.</em></h1>
+        <p>Choose an interest and a tone to find a Burmese line for your crush.</p>
+        <figure className="sample">
+          <figcaption>From the collection</figcaption>
+          <blockquote lang="my">မင်း WiFi လား? connection တစ်ခုခံစားနေရလို့</blockquote>
+        </figure>
+      </section>
+      <section className="generator">
         {error && (
-          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-100 rounded-md">
+          <div role="alert" className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-100 rounded-md">
             {error}
           </div>
         )}
@@ -103,7 +103,7 @@ const PickupLineGenerator = () => {
             onCopy={handleCopy}
           />
         )}
-      </div>
+      </section>
     </div>
   );
 };

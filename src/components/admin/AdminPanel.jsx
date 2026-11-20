@@ -75,7 +75,8 @@ const AdminPanel = () => {
     username: '',
     password: ''
   });
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authHeader, setAuthHeader] = useState(null);
+  const isAuthenticated = Boolean(authHeader);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -89,8 +90,8 @@ const AdminPanel = () => {
       });
 
       if (response.ok) {
-        setIsAuthenticated(true);
-        localStorage.setItem('adminAuth', base64Credentials);
+        setAuthHeader(base64Credentials);
+        setCredentials({ username: '', password: '' });
       } else {
         alert('Invalid credentials');
       }
@@ -107,7 +108,6 @@ const AdminPanel = () => {
         ? `${API_BASE}/api/admin/pickup-lines/${updatedLine._id}`
         : `${API_BASE}/api/admin/pickup-lines`;
 
-      const authHeader = localStorage.getItem('adminAuth');
       const response = await fetch(url, {
         method,
         headers: {
@@ -133,7 +133,6 @@ const AdminPanel = () => {
     if (!confirm('Are you sure you want to delete this pickup line?')) return;
 
     try {
-      const authHeader = localStorage.getItem('adminAuth');
       const response = await fetch(`${API_BASE}/api/admin/pickup-lines/${id}`, {
         method: 'DELETE',
         headers: {
@@ -160,7 +159,6 @@ const AdminPanel = () => {
         if (value) queryParams.set(key, value);
       });
 
-      const authHeader = localStorage.getItem('adminAuth');
       const response = await fetch(`${API_BASE}/api/admin/pickup-lines?${queryParams}`, {
         headers: {
           Authorization: `Basic ${authHeader}`
@@ -172,8 +170,7 @@ const AdminPanel = () => {
         setPickupLines(data.pickupLines);
         setTotalPages(data.pages || 1);
       } else if (response.status === 401) {
-        setIsAuthenticated(false);
-        localStorage.removeItem('adminAuth');
+        setAuthHeader(null);
       }
     } catch (error) {
       console.error('Error fetching pickup lines:', error);
@@ -191,10 +188,7 @@ const AdminPanel = () => {
   };
 
   useEffect(() => {
-    const authHeader = localStorage.getItem('adminAuth');
-    if (authHeader) {
-      setIsAuthenticated(true);
-    }
+    localStorage.removeItem('adminAuth'); // Clear credentials saved by earlier versions.
   }, []);
 
   useEffect(() => {
@@ -261,8 +255,7 @@ const AdminPanel = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        localStorage.removeItem('adminAuth');
-                        setIsAuthenticated(false);
+                                        setAuthHeader(null);
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
                     >

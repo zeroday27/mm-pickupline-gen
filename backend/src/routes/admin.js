@@ -33,7 +33,12 @@ router.get('/pickup-lines', async (req, res) => {
       style,
       review_status
     } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    if (![page, limit].every(value => /^\d+$/.test(String(value)) && Number.isSafeInteger(Number(value)) && Number(value) > 0)
+        || Number(limit) > 100 || [search, category, style, review_status].some(value =>
+          value !== undefined && (typeof value !== 'string' || value.length > 200))) {
+      return res.status(400).json({ error: 'Invalid list parameters' });
+    }
+    const skip = (Number(page) - 1) * Number(limit);
 
     // Build query
     const query = {};

@@ -18,6 +18,8 @@ import { recommendPickupLine } from './services/recommendationService.js';
 
 const app = express();
 if (process.env.WORKER_PROXY === '1') app.set('trust proxy', 1);
+app.disable('x-powered-by');
+app.set('query parser', 'simple');
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -61,6 +63,9 @@ app.get('/api/health', async (_req, res) => {
 app.get('/api/pickup-lines', async (req, res) => {
   try {
     const { category, style } = req.query;
+    if ([category, style].some(value => value !== undefined && typeof value !== 'string')) {
+      return res.status(400).json({ error: 'Invalid filter' });
+    }
     const query = {
       $or: [
         { review_status: 'approved' },
@@ -84,7 +89,7 @@ app.post('/api/generate', async (req, res) => {
   try {
     const { interest, style, language = 'my' } = req.body;
 
-    if (!interest || !style) {
+    if (![interest, style, language].every(value => typeof value === 'string' && value.trim() && value.length <= 80)) {
       return res.status(400).json({
         error: 'Missing required fields: interest, style'
       });

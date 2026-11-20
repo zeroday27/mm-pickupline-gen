@@ -103,8 +103,8 @@ const shortByStyle = {
   ]
 };
 
-const toMedium = (shortText, c) => `${shortText.replace(/\s+[✨🍯😉🥰🧀🌙😏🔥]+$/, '')}။ ${c.topic} အကြောင်းစကားဝိုင်းတိုင်းမှာ မင်းပါတာနဲ့ mood က ပိုပေါ့ပါးပျော်ရွှင်လာတယ်။`;
-const toLong = (shortText, c) => `${shortText.replace(/\s+[✨🍯😉🥰🧀🌙😏🔥]+$/, '')}။ အရင်က ${c.topic} ကိုပဲစိတ်ဝင်စားခဲ့တာပေမဲ့ အခုတော့ မင်းနဲ့ပြောတဲ့မိနစ်တွေကိုပိုစောင့်နေမိတယ်။ မင်းရဲ့ reply လေးတက်လာတာနဲ့ ပင်ပန်းမှုတွေ soft ဖြစ်သွားပြီး တစ်နေ့လုံး energy ပြန်တက်လာတယ်။`;
+const toMedium = (shortText, c) => `${shortText.replace(/\s+[✨🍯😉🥰🧀🌙😏🔥]+$/u, '')}။ ${c.topic} အကြောင်းစကားဝိုင်းတိုင်းမှာ မင်းပါတာနဲ့ mood က ပိုပေါ့ပါးပျော်ရွှင်လာတယ်။`;
+const toLong = (shortText, c) => `${shortText.replace(/\s+[✨🍯😉🥰🧀🌙😏🔥]+$/u, '')}။ အရင်က ${c.topic} ကိုပဲစိတ်ဝင်စားခဲ့တာပေမဲ့ အခုတော့ မင်းနဲ့ပြောတဲ့မိနစ်တွေကိုပိုစောင့်နေမိတယ်။ မင်းရဲ့ reply လေးတက်လာတာနဲ့ ပင်ပန်းမှုတွေ soft ဖြစ်သွားပြီး တစ်နေ့လုံး energy ပြန်တက်လာတယ်။`;
 
 const buildLine = (category, style, length, i) => {
   const base = CAT[category];

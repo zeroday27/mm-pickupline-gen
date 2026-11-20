@@ -36,12 +36,12 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
 
     const shareUrl = encodeURIComponent(window.location.href);
     const quote = encodeURIComponent(text);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${quote}`, '_blank');
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${quote}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleMessengerShare = (text) => {
     const url = encodeURIComponent(text);
-    window.open(`fb-messenger://share?link=${url}`, '_blank');
+    window.open(`fb-messenger://share?link=${url}`, '_blank', 'noopener,noreferrer');
   };
 
   if (loading) {
@@ -49,8 +49,8 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
       <Card className="mt-6 shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
         <CardContent className="pt-6">
           <div className="text-center mb-4">
-            <Sparkles className="h-8 w-8 mx-auto text-purple-500 animate-pulse" />
-            <p className="text-purple-600 dark:text-purple-400 mt-2 font-medium">
+            <Sparkles className="h-8 w-8 mx-auto text-amber-500 animate-pulse" />
+            <p className="text-amber-600 dark:text-amber-400 mt-2 font-medium">
               Generating your pickup line...
             </p>
           </div>
@@ -66,11 +66,11 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
     <Card className="mt-6 shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
       <CardHeader>
         <div className="flex items-center justify-center gap-2">
-          <Heart className="h-5 w-5 text-pink-500 animate-pulse" />
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <Heart className="h-5 w-5 text-amber-500 animate-pulse" />
+          <CardTitle className="text-2xl font-bold text-foreground">
             Your Pick-up Line
           </CardTitle>
-          <Heart className="h-5 w-5 text-pink-500 animate-pulse" />
+          <Heart className="h-5 w-5 text-amber-500 animate-pulse" />
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -78,10 +78,10 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
           <div key={index} className="relative">
             <Alert
               className={`
-                bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30
-                border-2 border-purple-200 dark:border-purple-700
+                bg-amber-50 dark:from-amber-900/30 dark:to-amber-900/30
+                border-2 border-amber-200 dark:border-amber-700
                 transition-all duration-300 hover:shadow-lg
-                ${line.isAI ? 'border-l-4 border-l-pink-500' : ''}
+                ${line.isAI ? 'border-l-4 border-l-amber-500' : ''}
               `}
             >
               <AlertDescription className="flex-1 text-lg py-2 px-3">
@@ -91,7 +91,7 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
               {/* AI Badge */}
               {line.isAI && (
                 <div className="absolute -top-2 -right-2">
-                  <span className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-md">
+                  <span className="bg-gradient-to-r from-amber-500 to-amber-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-md">
                     <Sparkles className="h-3 w-3" />
                     AI
                   </span>
@@ -100,7 +100,7 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
             </Alert>
 
             {line?.insight && (
-              <div className="mt-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-white/70 dark:bg-gray-900/60 p-3 space-y-2">
+              <div className="mt-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-white/70 dark:bg-gray-900/60 p-3 space-y-2">
                 <p className="text-sm text-gray-800 dark:text-gray-100">
                   <strong>Why this works:</strong> {line.insight.whyItWorks}
                 </p>
@@ -119,7 +119,7 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
                 variant="outline"
                 size="sm"
                 onClick={() => handleCopy(typeof line === 'string' ? line : line.text, index)}
-                className="flex-1 sm:flex-none bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900 border-purple-200 dark:border-purple-700"
+                className="flex-1 sm:flex-none bg-white dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900 border-amber-200 dark:border-amber-700"
               >
                 {copiedIndex === index ? (
                   <>
@@ -150,7 +150,7 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
                 onClick={() => handleFacebookShare(typeof line === 'string' ? line : line.text)}
                 className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 border-blue-200 dark:border-blue-700"
               >
-                <Facebook className="h-4 w-4" />
+                <Facebook aria-label="Share on Facebook" className="h-4 w-4" />
               </Button>
 
               <Button
@@ -159,7 +159,7 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
                 onClick={() => handleMessengerShare(typeof line === 'string' ? line : line.text)}
                 className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 border-blue-200 dark:border-blue-700"
               >
-                <MessageCircle className="h-4 w-4" />
+                <MessageCircle aria-label="Share on Messenger" className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -167,7 +167,7 @@ const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
 
         {/* Regenerate Button */}
         <Button
-          className="w-full mt-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+          className="w-full mt-6 generate shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
           onClick={onRegenerate}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
