@@ -25,6 +25,9 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: false
 
   sast:
+    env:
+      # Evaluate the same full-repository policy before and after merge.
+      CODEQL_ACTION_DIFF_INFORMED_QUERIES: "false"
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -46,6 +49,13 @@ jobs:
           output: sarif
       - name: Gate high severity findings
         run: |
-          jq -se '[.[].runs[] | . as $run | .results[]? | .ruleId as $id
-            | ($run.tool.driver, $run.tool.extensions[]?) | .rules[]? | select(.id == $id)
-            | (.properties["security-severity"] // "0" | tonumber) | select(. >= 7)] | length == 0' sarif/*.sarif
+          jq -ser '
+            [.[].runs[] | . as $run | .results[]? as $result
+             | ($run.tool.driver, $run.tool.extensions[]?) | .rules[]?
+             | select(.id == $result.ruleId)
+             | (.properties["security-severity"] // "0" | tonumber) as $score
+             | select($score >= 7)
+             | $result.locations[0].physicalLocation as $location
+             | "\(.id) (\($score)) at \($location.artifactLocation.uri):\($location.region.startLine)"]
+            | unique | if length == 0 then "No high-severity findings"
+              else (join("\n") + "\n" | halt_error(1)) end' sarif/*.sarif
