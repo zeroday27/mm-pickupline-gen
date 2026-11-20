@@ -47,5 +47,5 @@ jobs:
       - name: Gate high severity findings
         run: |
           jq -se '[.[].runs[] | . as $run | .results[]? | .ruleId as $id
-            | $run.tool.driver.rules[]? | select(.id == $id)
+            | ($run.tool.driver, $run.tool.extensions[]?) | .rules[]? | select(.id == $id)
             | (.properties["security-severity"] // "0" | tonumber) | select(. >= 7)] | length == 0' sarif/*.sarif
