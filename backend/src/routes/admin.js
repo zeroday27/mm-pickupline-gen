@@ -48,17 +48,17 @@ router.get('/pickup-lines', async (req, res) => {
     }
 
     if (category) {
-      query.category = category;
+      query.category = { $eq: category };
     }
 
     if (style) {
-      query.style = style;
+      query.style = { $eq: style };
     }
 
     query.length = 'short';
 
     if (review_status) {
-      query.review_status = review_status;
+      query.review_status = { $eq: review_status };
     }
 
     const [pickupLines, total] = await Promise.all([
