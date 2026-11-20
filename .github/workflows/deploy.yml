@@ -22,7 +22,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npx --no-install wrangler deploy --dry-run
+      - run: npx --no-install wrangler deploy --dry-run --containers-rollout none
       - name: Test production API image against MongoDB
         run: |
           docker build -f Dockerfile.backend -t pickup-api .
