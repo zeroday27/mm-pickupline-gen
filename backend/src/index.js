@@ -40,7 +40,7 @@ app.use('/api/generate', rateLimit({ windowMs: 60_000, max: 10, message: { error
 
 if (process.env.SITE_DIR) {
   app.use(express.static(process.env.SITE_DIR));
-  app.get('/admin', (_req, res) => res.sendFile(path.join(process.env.SITE_DIR, 'index.html')));
+  app.get('/admin', rateLimit({ windowMs: 60_000, max: 60 }), (_req, res) => res.sendFile(path.join(process.env.SITE_DIR, 'index.html')));
 }
 
 // Root route

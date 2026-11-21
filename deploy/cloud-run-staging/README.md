@@ -38,7 +38,9 @@ Check for residual Cloud Run network interfaces if subnet removal requires
 a retry. Google retains some IAM resources in soft-deleted status.
 
 GitHub's staging environment and Infisical project predate this stack.
-Atlas cluster data, user-managed Atlas credentials, shared Google APIs and
+The staging Atlas login is `pickup_staging_app`, scoped to `readWrite` on
+`pickup_staging` in `ygai-cluster0`. Retire that login separately with approval.
+Atlas cluster data, shared Google APIs and
 Google-managed service agents are outside its state. For a full retirement,
 review those separately. Google retains audit and usage records according to
 project policy.
