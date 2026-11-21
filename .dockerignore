@@ -10,3 +10,5 @@ README.md
 .env.local
 .env.*.local
 backend/.env
+deploy/cloud-run-staging/
+gha-creds-*.json

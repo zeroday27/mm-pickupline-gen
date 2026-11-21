@@ -38,6 +38,11 @@ app.use(express.json({ limit: '100kb' }));
 app.use('/api/', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
 app.use('/api/generate', rateLimit({ windowMs: 60_000, max: 10, message: { error: 'Too many requests, try again later' } }));
 
+if (process.env.SITE_DIR) {
+  app.use(express.static(process.env.SITE_DIR));
+  app.get('/admin', (_req, res) => res.sendFile(path.join(process.env.SITE_DIR, 'index.html')));
+}
+
 // Root route
 app.get('/', (req, res) => {
   res.json({
@@ -129,7 +134,7 @@ app.use('/api/admin', authMiddleware, adminRoutes);
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://mongodb:27017/pickuplines')
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(() => console.error('MongoDB connection failed'));
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

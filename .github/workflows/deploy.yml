@@ -48,6 +48,15 @@ jobs:
             -e ADMIN_USERNAME=ci -e ADMIN_PASSWORD=ci-only pickup-api
           node scripts/smoke.mjs
 
+      - name: Test the combined staging image
+        run: |
+          docker build --target cloud_run -f Dockerfile.backend -t pickup-staging .
+          docker run -d --name stage --network pickup-ci -p 127.0.0.1:3001:3000 \
+            -e MONGODB_URI=mongodb://mongo:27017/pickup_ci \
+            -e ADMIN_USERNAME=ci -e ADMIN_PASSWORD=ci-only pickup-staging
+          APP_URL=http://127.0.0.1:3001 node scripts/smoke.mjs --production
+          curl --fail --silent http://127.0.0.1:3001/admin | grep -q 'id="root"'
+
       - name: Scan the API image
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
@@ -140,3 +149,106 @@ jobs:
         env:
           APP_URL: ${{ vars.APP_URL }}
         run: node scripts/smoke.mjs --production
+
+  staging:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [check, security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: pickup-cloud-run-staging
+      cancel-in-progress: false
+    env:
+      IMAGE: asia-southeast1-docker.pkg.dev/yangonai/pickup-staging/app
+      APP_URL: https://pickup-staging-tl4o72ekeq-as.a.run.app
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Build staging image
+        run: docker build --target cloud_run -f Dockerfile.backend -t "$IMAGE:$GITHUB_SHA" .
+      - name: Scan staging image
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ github.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Authenticate staging deployer
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: projects/1023191960735/locations/global/workloadIdentityPools/pickup-staging/providers/github
+          service_account: pickup-staging-deploy@yangonai.iam.gserviceaccount.com
+      - name: Publish staging image
+        run: |
+          gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+          docker push "$IMAGE:$GITHUB_SHA"
+      - name: Fetch MONGODB_URI
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          oidc-audience: infisical-mm-pickupline-gen-staging
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: staging
+          secret-path: /pickup
+          secret-name: MONGODB_URI
+          include-imports: false
+      - name: Fetch ADMIN_USERNAME
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          oidc-audience: infisical-mm-pickupline-gen-staging
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: staging
+          secret-path: /pickup
+          secret-name: ADMIN_USERNAME
+          include-imports: false
+      - name: Fetch ADMIN_PASSWORD
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
+        with:
+          method: oidc
+          oidc-audience: infisical-mm-pickupline-gen-staging
+          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: staging
+          secret-path: /pickup
+          secret-name: ADMIN_PASSWORD
+          include-imports: false
+
+      - name: Deploy private revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${MONGODB_URI:?}" "${ADMIN_USERNAME:?}" "${ADMIN_PASSWORD:?}"
+          bindings=()
+          for key in MONGODB_URI ADMIN_USERNAME ADMIN_PASSWORD; do
+            name="pickup-staging-${key,,}"
+            name="${name//_/-}"
+            version=$(printf '%s' "${!key}" | gcloud secrets versions add "$name" \
+              --project=yangonai --data-file=- --format='value(name)')
+            version=${version##*/}
+            [[ "$version" =~ ^[0-9]+$ ]]
+            bindings+=("$key=$name:$version")
+          done
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
+          gcloud run services update pickup-staging --project=yangonai --region=asia-southeast1 \
+            --image="$digest" --set-secrets="$(IFS=,; echo "${bindings[*]}")" --quiet
+      - name: Authenticate smoke test
+        id: smoke_auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          workload_identity_provider: projects/1023191960735/locations/global/workloadIdentityPools/pickup-staging/providers/github
+          service_account: pickup-staging-deploy@yangonai.iam.gserviceaccount.com
+          token_format: id_token
+          id_token_audience: ${{ env.APP_URL }}
+      - name: Verify private staging UI, API and Atlas
+        env:
+          RUN_ID_TOKEN: ${{ steps.smoke_auth.outputs.id_token }}
+        run: node scripts/smoke-cloud-run.mjs
