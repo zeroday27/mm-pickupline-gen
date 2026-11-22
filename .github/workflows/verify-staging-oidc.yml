@@ -7,7 +7,7 @@ permissions: {}
 
 jobs:
   verify:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/stag'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: staging

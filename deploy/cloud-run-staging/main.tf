@@ -75,8 +75,8 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "assertion.repository_id == '880826703'",
     "assertion.repository_owner_id == '86004494'",
     "assertion.sub == 'repo:zeroday27/mm-pickupline-gen:environment:staging'",
-    "assertion.ref == 'refs/heads/main'",
-    "assertion.workflow_ref == 'zeroday27/mm-pickupline-gen/.github/workflows/deploy.yml@refs/heads/main'"
+    "assertion.ref == 'refs/heads/stag'",
+    "assertion.workflow_ref == 'zeroday27/mm-pickupline-gen/.github/workflows/deploy.yml@refs/heads/stag'"
   ])
   oidc { issuer_uri = "https://token.actions.githubusercontent.com" }
 }

@@ -6,7 +6,7 @@ For browser testing with an authorized Google identity, use
 `gcloud run services proxy pickup-staging --project=yangonai --region=asia-southeast1 --port=8080`
 and open `http://localhost:8080`.
 
-The staging job runs on main after the check and security jobs pass. GitHub
+The staging job runs on `stag` after the check and security jobs pass. GitHub
 uses OIDC for both Google Cloud and Infisical. The deployer publishes one
 image and three Secret Manager versions per release. Each revision references
 its image digest and numeric secret versions. Infisical staging at
