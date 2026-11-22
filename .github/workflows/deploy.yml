@@ -2,7 +2,7 @@ name: Check and deploy
 on:
   pull_request:
   push:
-    branches: [dev, stag, live]
+    branches: [dev, stag, main]
   workflow_dispatch:
 
 permissions:
@@ -73,7 +73,7 @@ jobs:
           output-file: pickup.cdx.json
 
   dependency-track:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/live' && vars.DEPENDENCY_TRACK_URL != ''
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPENDENCY_TRACK_URL != ''
     needs: [security, check]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -105,7 +105,7 @@ jobs:
 
   deploy:
     needs: [check, security]
-    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/live'
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
