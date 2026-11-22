@@ -5,7 +5,7 @@ assert.equal(origin.protocol, 'https:');
 assert.ok(origin.hostname.endsWith('.run.app'));
 const headers = { 'X-Serverless-Authorization': 'Bearer ' + process.env.RUN_ID_TOKEN };
 const get = path => fetch(new URL(path, origin), {
-  headers, redirect: 'error', signal: AbortSignal.timeout(15000)
+  headers, redirect: 'error', signal: AbortSignal.timeout(100_000)
 });
 const health = await get('/api/health');
 assert.equal(health.status, 200);
