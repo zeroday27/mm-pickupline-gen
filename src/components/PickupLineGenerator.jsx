@@ -1,111 +1,83 @@
-// src/components/PickupLineGenerator.jsx
 import React, { useState } from 'react';
+import { Sparkle } from 'lucide-react';
+import { Brand, ThemeToggle } from './ThemeToggle';
 import PickupLineForm from './PickupLineForm';
 import PickupLineResults from './PickupLineResults';
+import LoadingAnimation from './LoadingAnimation';
 import { generatePickupLine } from '../lib/api';
 
-const PickupLineGenerator = () => {
-  const [formData, setFormData] = useState({
-    identity: '',
-    interests: [],
-    style: ''
-  });
+const steps = ['pick a vibe', 'get a line', 'shoot your shot'];
+const errorText = 'Pickup lines ထုတ်ယူရာတွင် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်မံကြိုးစားကြည့်ပါ။';
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-  const [generatedLines, setGeneratedLines] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+export default function PickupLineGenerator() {
+  const [picks, setPicks] = useState({ identity: '', interest: '', vibe: '' });
+  const [state, setState] = useState('pick');
+  const [line, setLine] = useState(null);
+  const [count, setCount] = useState(0);
+  const [minimum, setMinimum] = useState(2400);
+  const step = state === 'pick' ? 0 : state === 'result' ? 2 : 1;
 
-
-
-  const generatePickupLines = async () => {
-    if (!formData.interests.length || !formData.style || !formData.identity) {
-      setError('Please fill in all required fields');
+  async function generate() {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ms = reduced ? 500 : count ? 1300 : 2400;
+    setMinimum(ms);
+    setState('thinking');
+    // Call the API right away; keep the thinking state up for at least `ms`.
+    const [response] = await Promise.allSettled([
+      generatePickupLine(picks.identity, picks.interest, picks.vibe),
+      wait(ms)
+    ]);
+    if (response.status !== 'fulfilled' || !response.value?.text) {
+      setState('error');
       return;
     }
+    setLine(response.value);
+    setCount(c => c + 1);
+    setState('result');
+  }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await generatePickupLine(
-        formData.identity,
-        formData.interests[0],
-        formData.style
-      );
-
-      if (result && result.text) {
-        setGeneratedLines([{
-          text: result.text,
-          isAI: result.isAI,
-          source: result.source,
-          insight: result.insight
-        }]);
-      } else {
-        throw new Error('Invalid pickup line generated');
-      }
-
-    } catch (err) {
-      console.error('Error generating pickup lines:', err);
-      setError(
-        'Pickup lines ထုတ်ယူရာတွင် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်မံကြိုးစားကြည့်ပါ။'
-      );
-      setGeneratedLines([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFormDataChange = (newFormData) => {
-    setFormData(newFormData);
-    setError(null);
-  };
-
-  const handleCopy = async (text) => {
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log('Text copied successfully');
-    } catch (err) {
-      console.error('Failed to copy text:', err);
-    }
-  };
+  function back() {
+    setState('pick');
+    setCount(0);
+  }
 
   return (
-    <div className="studio">
-      <section className="intro">
-        <h1>Burmese<br /><em>pickup lines.</em></h1>
-        <p>Choose an interest and a tone to find a Burmese line for your crush.</p>
-        <figure className="sample">
-          <figcaption>From the collection</figcaption>
-          <blockquote lang="my">မင်း WiFi လား? connection တစ်ခုခံစားနေရလို့</blockquote>
-        </figure>
-      </section>
-      <section className="generator">
-        {error && (
-          <div role="alert" className="mb-4 p-4 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-100 rounded-md">
-            {error}
-          </div>
-        )}
-
-        <PickupLineForm
-          formData={formData}
-          setFormData={handleFormDataChange}
-          loading={loading}
-          onGenerate={generatePickupLines}
-        />
-
-        {(loading || generatedLines.length > 0) && (
-          <PickupLineResults
-            lines={generatedLines}
-            loading={loading}
-            onRegenerate={generatePickupLines}
-            onCopy={handleCopy}
-          />
-        )}
-      </section>
-    </div>
+    <main className={'public ' + state}>
+      <header className="mast">
+        <Brand />
+        <div className="dots" role="img" aria-label={'Step ' + (step + 1) + ' of 3'}>
+          {steps.map((s, i) => <i key={s} className={i === step ? 'active' : ''} />)}
+        </div>
+        <ThemeToggle />
+      </header>
+      <div className="studio">
+        <section className="intro">
+          <span className="sticker origin"><Sparkle size={16} aria-hidden="true" /> made in myanmar</span>
+          <h1>rizz, but <span>make it </span><strong>burmese.</strong></h1>
+          <p>Pick their thing, pick a vibe. Get a Burmese line that actually lands.</p>
+          <ol>
+            {steps.map((s, i) => (
+              <li key={s} className={i === step ? 'active' : i < step ? 'done' : ''}><b>0{i + 1}</b>{s}</li>
+            ))}
+          </ol>
+        </section>
+        <section className="stage" aria-label="Line generator">
+          {state === 'pick' && (
+            <PickupLineForm picks={picks} update={(field, value) => setPicks(p => ({ ...p, [field]: value }))} generate={generate} />
+          )}
+          {state === 'thinking' && <LoadingAnimation picks={picks} reroll={count > 0} duration={minimum} />}
+          {state === 'result' && <PickupLineResults {...{ line, picks, count, back, generate }} />}
+          {state === 'error' && (
+            <div className="errorstage">
+              <p role="alert" lang="my">{errorText}</p>
+              <button className="ink" onClick={generate}>Try again</button>
+              <button onClick={back}>Back to picks</button>
+            </div>
+          )}
+        </section>
+      </div>
+      <footer>Yangon AI <span>Made in Myanmar</span></footer>
+    </main>
   );
-};
-
-export default PickupLineGenerator;
+}

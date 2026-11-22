@@ -1,54 +1,47 @@
-import React from 'react';
-import { Sparkles, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { identities, title } from './options';
 
-const LoadingAnimation = () => {
-  const thinkingMessages = [
-    "Thinking...",
-    "Finding the perfect pickup line...",
-    "Making it special for you..."
-  ];
+const burmese = [
+  'စဉ်းစားနေပါတယ်...',
+  'အကောင်းဆုံး pickup line ရွေးနေပါတယ်...',
+  'နှလုံးသားလေး ခုန်မြန်လာအောင် ကြိုးစားနေပါတယ်...'
+];
 
-  const burmeseMessages = [
-    "စဉ်းစားနေပါတယ်...",
-    "အကောင်းဆုံး pickup line ရွေးနေပါတယ်...",
-    "နှလုံးသားလေး ခုန်မြန်လာအောင် ကြိုးစားနေပါတယ်..."
-  ];
-
-  const [messageIndex, setMessageIndex] = React.useState(0);
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % thinkingMessages.length);
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
+function Sparkle({ className }) {
   return (
-    <div className="flex flex-col items-center justify-center p-8 space-y-6">
-      {/* Animated Icons */}
-      <div className="relative">
-        <Heart className="w-12 h-12 text-pink-500 animate-pulse" />
-        <Sparkles className="w-6 h-6 text-purple-500 absolute -top-2 -right-2 animate-bounce" />
-      </div>
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 0 C13 8 16 11 24 12 C16 13 13 16 12 24 C11 16 8 13 0 12 C8 11 11 8 12 0Z" />
+    </svg>
+  );
+}
 
-      {/* Loading dots */}
-      <div className="flex space-x-3">
-        <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-        <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-        <div className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"></div>
+export default function LoadingAnimation({ picks, reroll, duration = 2400 }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setI(v => v + 1), Math.max(250, duration / 4));
+    return () => clearInterval(id);
+  }, [duration]);
+  const messages = [
+    'reading the vibe…',
+    'mixing ' + picks.interest + ' × ' + picks.vibe + '…',
+    'checking rizz levels…',
+    'almost there…'
+  ];
+  const stickers = [identities[picks.identity], title(picks.interest), title(picks.vibe)];
+  return (
+    <div className="thinkingView" role="status" style={{ '--dur': duration + 'ms' }}>
+      <small>{reroll ? 'shuffling' : 'cooking your line'}</small>
+      <div className="orbit" aria-hidden="true">
+        <Sparkle className="spark" />
+        <Sparkle className="spark second" />
+        <div className="bubble"><i /><i /><i /></div>
+        {stickers.map((v, n) => (
+          <span key={n} className={'track track' + n}><b className={'sat sat' + n}>{v}</b></span>
+        ))}
       </div>
-
-      {/* Thinking message */}
-      <div className="text-center space-y-1">
-        <p className="text-purple-600 dark:text-purple-400 font-medium animate-pulse">
-          {thinkingMessages[messageIndex]}
-        </p>
-        <p className="text-pink-500 dark:text-pink-400 text-sm">
-          {burmeseMessages[messageIndex]}
-        </p>
-      </div>
+      <h2 key={i}>{messages[Math.min(i, 3)]}</h2>
+      <p lang="my">{burmese[i % 3]}</p>
+      <div className="progress"><i /></div>
     </div>
   );
-};
-export default LoadingAnimation;
+}

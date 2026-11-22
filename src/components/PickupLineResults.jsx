@@ -1,180 +1,100 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Share2, Copy, RefreshCw, Heart, Sparkles, Facebook, MessageCircle, Check } from 'lucide-react';
-import { Alert, AlertDescription } from './ui/alert';
-import LoadingAnimation from './LoadingAnimation';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Copy, Check, Share2, MessageCircle, RefreshCw } from 'lucide-react';
+import { identities, title } from './options';
 
-const PickupLineResults = ({ lines, loading, onRegenerate, onCopy }) => {
-  const [copiedIndex, setCopiedIndex] = useState(null);
+function TypedLine({ text }) {
+  // Split on spaces and fade each word in; whitespace stays so the full height is reserved.
+  let word = 0;
+  return (
+    <p lang="my" aria-label={text}>
+      {text.split(/(\s+)/).map((token, i) => {
+        if (!token.trim()) return token;
+        const delay = 250 + word++ * 100;
+        return <span aria-hidden="true" key={i} style={{ animationDelay: delay + 'ms' }}>{token}</span>;
+      })}
+    </p>
+  );
+}
 
-  const handleCopy = (text, index) => {
-    onCopy(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
+export default function PickupLineResults({ line, picks, count, back, generate }) {
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+  const timer = useRef();
+  useEffect(() => () => clearTimeout(timer.current), []);
 
-  const handleShare = async (text) => {
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(line.text);
+      setCopied(true);
+      setError('');
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setError('Copy unavailable. Select the line to copy it.');
+    }
+  }
+
+  async function share() {
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'Pick-up Line',
-          text: text,
-        });
-      } catch (err) {
-        console.log('Share cancelled');
+        await navigator.share({ text: line.text, title: 'Burmese pickup line' });
+      } catch (e) {
+        if (e.name !== 'AbortError') setError('Sharing unavailable. Try copying the line.');
       }
+      return;
     }
-  };
-
-  const handleFacebookShare = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      console.error('Failed to copy before Facebook share:', err);
-    }
-
-    const shareUrl = encodeURIComponent(window.location.href);
-    const quote = encodeURIComponent(text);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${quote}`, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleMessengerShare = (text) => {
-    const url = encodeURIComponent(text);
-    window.open(`fb-messenger://share?link=${url}`, '_blank', 'noopener,noreferrer');
-  };
-
-  if (loading) {
-    return (
-      <Card className="mt-6 shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-        <CardContent className="pt-6">
-          <div className="text-center mb-4">
-            <Sparkles className="h-8 w-8 mx-auto text-amber-500 animate-pulse" />
-            <p className="text-amber-600 dark:text-amber-400 mt-2 font-medium">
-              Generating your pickup line...
-            </p>
-          </div>
-          <LoadingAnimation />
-        </CardContent>
-      </Card>
+    // Existing fallback: copy the line, then open the Facebook sharer with it as the quote.
+    await copy();
+    window.open(
+      'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(location.href) + '&quote=' + encodeURIComponent(line.text),
+      '_blank', 'noopener,noreferrer'
     );
   }
 
-  if (lines.length === 0) return null;
+  function messenger() {
+    window.open('fb-messenger://share?link=' + encodeURIComponent(line.text), '_blank', 'noopener,noreferrer');
+  }
+
+  const insights = [
+    ['Why it hits', line.insight?.whyItWorks],
+    ['Then say', line.insight?.followUp],
+    ['Use when', line.insight?.bestUsedWhen]
+  ].filter(([, v]) => v);
 
   return (
-    <Card className="mt-6 shadow-xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur">
-      <CardHeader>
-        <div className="flex items-center justify-center gap-2">
-          <Heart className="h-5 w-5 text-amber-500 animate-pulse" />
-          <CardTitle className="text-2xl font-bold text-foreground">
-            Your Pick-up Line
-          </CardTitle>
-          <Heart className="h-5 w-5 text-amber-500 animate-pulse" />
+    <div className="stagebody result">
+      <header>
+        <button className="circle" aria-label="Back to picks" onClick={back}><ArrowLeft /></button>
+        <h2>your line</h2>
+        <b className="badge">No. {String(count).padStart(2, '0')}</b>
+      </header>
+      <div className="resultScroll">
+        <div className="tags">
+          <b className="tag-interest">{title(picks.interest)}</b>
+          <b className="tag-vibe">{title(picks.vibe)}</b>
+          <b className="tag-you">you: {identities[picks.identity]}</b>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {lines.map((line, index) => (
-          <div key={index} className="relative">
-            <Alert
-              className={`
-                bg-amber-50 dark:from-amber-900/30 dark:to-amber-900/30
-                border-2 border-amber-200 dark:border-amber-700
-                transition-all duration-300 hover:shadow-lg
-                ${line.isAI ? 'border-l-4 border-l-amber-500' : ''}
-              `}
-            >
-              <AlertDescription className="flex-1 text-lg py-2 px-3">
-                {typeof line === 'string' ? line : line.text}
-              </AlertDescription>
-
-              {/* AI Badge */}
-              {line.isAI && (
-                <div className="absolute -top-2 -right-2">
-                  <span className="bg-gradient-to-r from-amber-500 to-amber-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-md">
-                    <Sparkles className="h-3 w-3" />
-                    AI
-                  </span>
-                </div>
-              )}
-            </Alert>
-
-            {line?.insight && (
-              <div className="mt-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-white/70 dark:bg-gray-900/60 p-3 space-y-2">
-                <p className="text-sm text-gray-800 dark:text-gray-100">
-                  <strong>Why this works:</strong> {line.insight.whyItWorks}
-                </p>
-                <p className="text-sm text-gray-800 dark:text-gray-100">
-                  <strong>Best used when:</strong> {line.insight.bestUsedWhen}
-                </p>
-                <p className="text-sm text-gray-800 dark:text-gray-100">
-                  <strong>Suggested follow-up:</strong> {line.insight.followUp}
-                </p>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-2 mt-3 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleCopy(typeof line === 'string' ? line : line.text, index)}
-                className="flex-1 sm:flex-none bg-white dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900 border-amber-200 dark:border-amber-700"
-              >
-                {copiedIndex === index ? (
-                  <>
-                    <Check className="h-4 w-4 mr-1 text-green-500" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-1" />
-                    Copy
-                  </>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleShare(typeof line === 'string' ? line : line.text)}
-                className="flex-1 sm:flex-none bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900 border-blue-200 dark:border-blue-700"
-              >
-                <Share2 className="h-4 w-4 mr-1" />
-                Share
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleFacebookShare(typeof line === 'string' ? line : line.text)}
-                className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 border-blue-200 dark:border-blue-700"
-              >
-                <Facebook aria-label="Share on Facebook" className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleMessengerShare(typeof line === 'string' ? line : line.text)}
-                className="bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-blue-900 border-blue-200 dark:border-blue-700"
-              >
-                <MessageCircle aria-label="Share on Messenger" className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-
-        {/* Regenerate Button */}
-        <Button
-          className="w-full mt-6 generate shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-          onClick={onRegenerate}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Generate Another
-        </Button>
-      </CardContent>
-    </Card>
+        <article className="linecard" key={count}>
+          <b className="sticker cap">no cap</b>
+          <small>Say this</small>
+          <TypedLine text={line.text} />
+        </article>
+        {insights.length > 0 && (
+          <dl>{insights.map(([k, v]) => <div key={k}><dt>{k}</dt><dd lang="my">{v}</dd></div>)}</dl>
+        )}
+      </div>
+      {error && <p className="inlineError" role="alert">{error}</p>}
+      <div className="actions">
+        <div>
+          <button className={'ink copy' + (copied ? ' copied' : '')} onClick={copy}>
+            {copied ? <span className="tick"><Check size={18} /></span> : <Copy />}
+            <span aria-live="polite">{copied ? 'Copied' : 'Copy line'}</span>
+          </button>
+          <button className="circle" aria-label="Share line" onClick={share}><Share2 /></button>
+          <button className="circle" aria-label="Send with Messenger" onClick={messenger}><MessageCircle /></button>
+        </div>
+        <button className="lime another" onClick={generate}><RefreshCw />Another one</button>
+      </div>
+    </div>
   );
-};
-export default PickupLineResults;
+}

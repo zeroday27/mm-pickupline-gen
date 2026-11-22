@@ -1,250 +1,119 @@
-// src/components/admin/EditPickupLineModal.jsx
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Label } from '../ui/label';
+import { ArrowLeft, Trash2, X } from 'lucide-react';
+import { interests, styles, title } from '../options';
+import { Select, Status } from './fields';
 
-const CATEGORIES = [
-  'movies', 'music', 'books', 'tech', 'football', 'gaming', 'travel', 'food',
-  'sports', 'art', 'fitness', 'photography', 'nature', 'cooking', 'dancing',
-  'business', 'education', 'health', 'beauty', 'fashion', 'pets', 'science',
-  'history', 'other'
-];
+const checklist = ['Natural Burmese', 'Actually fun', 'Respectful', 'Category & style match'];
+const clamp = (v, fallback) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(100, Number(v))) : fallback);
+const toTags = tags => (Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : []);
 
-const STYLES = ['funny', 'romantic', 'flirty', 'cute', 'cheesy', 'poetic', 'sarcastic', 'sweet', 'bold', 'other'];
-const REVIEW_STATUSES = ['staging', 'reviewed', 'approved', 'rejected'];
+export default function Editor({ line, mobileOpen, close, busy, mutate }) {
+  const [draft, setDraft] = useState({ ...line, burmese_text: line.burmese_text || line.text || '', tags: toTags(line.tags) });
+  const [checks, setChecks] = useState([]);
+  const [tag, setTag] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const update = (k, v) => setDraft(d => ({ ...d, [k]: v }));
+  const text = draft.burmese_text.trim();
+  const valid = Boolean(text && draft.category && draft.style);
+  const ready = checks.length === checklist.length;
 
-const defaultLine = {
-  text: '',
-  burmese_text: '',
-  english_source_text: '',
-  source_url: '',
-  license_note: '',
-  category: '',
-  style: '',
-  length: 'short',
-  review_status: 'staging',
-  quality_score: 70,
-  safety_score: 95,
-  tags: [],
-  language: 'my'
-};
+  function save(status) {
+    if (!valid || busy || (status === 'approved' && !ready)) return;
+    mutate({
+      ...draft,
+      text,
+      burmese_text: text,
+      length: draft.length || 'short',
+      quality_score: clamp(draft.quality_score, 70),
+      safety_score: clamp(draft.safety_score, 95),
+      review_status: status
+    });
+  }
 
-const EditPickupLineModal = ({ pickupLine, onClose, onSave }) => {
-  const existingTags = Array.isArray(pickupLine?.tags)
-    ? pickupLine.tags
-    : typeof pickupLine?.tags === 'string'
-      ? pickupLine.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
-      : [];
-
-  const [formData, setFormData] = useState({
-    ...defaultLine,
-    ...pickupLine,
-    tags: existingTags
-  });
-
-  const [tagInput, setTagInput] = useState(formData.tags.join(', '));
-
-  const handleSubmit = (e) => {
+  function addTag(e) {
+    if (e.key !== 'Enter') return;
     e.preventDefault();
-
-    const parsedQuality = Number(formData.quality_score);
-    const parsedSafety = Number(formData.safety_score);
-    const cleanedText = (formData.burmese_text || formData.text || '').trim();
-
-    const payload = {
-      ...formData,
-      length: 'short',
-      text: cleanedText,
-      burmese_text: cleanedText,
-      quality_score: Number.isFinite(parsedQuality) ? Math.max(0, Math.min(100, parsedQuality)) : 70,
-      safety_score: Number.isFinite(parsedSafety) ? Math.max(0, Math.min(100, parsedSafety)) : 95,
-      tags: tagInput
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean)
-    };
-
-    onSave(payload);
-  };
+    const t = tag.trim();
+    if (t) update('tags', [...new Set([...draft.tags, t])]);
+    setTag('');
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 shadow-xl">
-        <CardHeader className="bg-white dark:bg-gray-900 border-b dark:border-gray-800">
-          <CardTitle className="text-gray-900 dark:text-white">
-            {pickupLine._id ? 'Edit' : 'Add'} Pickup Line
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="bg-white dark:bg-gray-900">
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <aside className={'editor panel' + (mobileOpen ? ' open' : '')} aria-label="Line editor">
+      <header>
+        <button className="circle back" aria-label="Back to queue" onClick={close}><ArrowLeft /></button>
+        <div className="editorTitle">
+          <h2>{line.fresh ? 'new line' : 'edit line'}</h2>
+          <small>{line._id || 'New'} · {draft.length || 'short'}</small>
+        </div>
+        <Status value={line.review_status} />
+        {line._id && <button className="circle" aria-label="Delete line" onClick={() => setConfirming(true)}><Trash2 size={18} /></button>}
+      </header>
+      <div className="editorScroll">
+        {confirming && (
+          <div className="confirm" role="alertdialog" aria-label="Confirm delete">
+            <b>Delete this line? This can’t be undone.</b>
             <div>
-              <Label className="text-gray-700 dark:text-gray-200">Burmese Text</Label>
-              <textarea
-                className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 
-                          text-gray-900 dark:text-gray-100 border-gray-300 
-                          dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                value={formData.burmese_text || formData.text}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  text: e.target.value,
-                  burmese_text: e.target.value
-                })}
-                rows={4}
-                required
-              />
+              <button onClick={() => setConfirming(false)}>Cancel</button>
+              <button className="danger" disabled={busy} onClick={() => mutate(line, true)}>Delete permanently</button>
             </div>
-
-            <div>
-              <Label className="text-gray-700 dark:text-gray-200">English Source Text</Label>
-              <textarea
-                className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                value={formData.english_source_text || ''}
-                onChange={(e) => setFormData({ ...formData, english_source_text: e.target.value })}
-                rows={2}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Category</Label>
-                <select
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                >
-                  <option value="">Select Category</option>
-                  {CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Style</Label>
-                <select
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.style}
-                  onChange={(e) => setFormData({ ...formData, style: e.target.value })}
-                  required
-                >
-                  <option value="">Select Style</option>
-                  {STYLES.map((style) => (
-                    <option key={style} value={style}>
-                      {style}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Review Status</Label>
-                <select
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.review_status || 'staging'}
-                  onChange={(e) => setFormData({ ...formData, review_status: e.target.value })}
-                >
-                  {REVIEW_STATUSES.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Language</Label>
-                <input
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.language || 'my'}
-                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Quality Score (0-100)</Label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.quality_score}
-                  onChange={(e) => setFormData({ ...formData, quality_score: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Safety Score (0-100)</Label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.safety_score}
-                  onChange={(e) => setFormData({ ...formData, safety_score: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">Source URL</Label>
-                <input
-                  type="url"
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.source_url || ''}
-                  onChange={(e) => setFormData({ ...formData, source_url: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-gray-700 dark:text-gray-200">License Note</Label>
-                <input
-                  type="text"
-                  className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                  value={formData.license_note || ''}
-                  onChange={(e) => setFormData({ ...formData, license_note: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-gray-700 dark:text-gray-200">Tags (comma separated)</Label>
-              <input
-                type="text"
-                className="w-full p-2 mt-1 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-purple-500"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="movie-quote, pun, playful"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-4 border-t dark:border-gray-800">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onClose}
-                className="bg-white dark:bg-gray-800"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                Save
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        )}
+        <div className="preview">
+          <b className="sticker">preview</b>
+          <p lang="my">{draft.burmese_text || 'Your Burmese line shows here.'}</p>
+        </div>
+        <label className="field">Burmese text
+          <textarea lang="my" rows={3} value={draft.burmese_text} onChange={e => update('burmese_text', e.target.value)} />
+        </label>
+        <label className="field">English source
+          <textarea rows={2} value={draft.english_source_text || ''} onChange={e => update('english_source_text', e.target.value)} />
+        </label>
+        <div className="pair">
+          <Select label="Category" value={draft.category} options={interests} onChange={v => update('category', v)} />
+          <Select label="Style" value={draft.style} options={styles} onChange={v => update('style', v)} />
+        </div>
+        {['quality_score', 'safety_score'].map(k => (
+          <label className="field range" key={k}>
+            <span>{title(k.split('_')[0])} <output>{draft[k] ?? 0}</output></span>
+            <input type="range" min="0" max="100" value={draft[k] ?? 0} onChange={e => update(k, Number(e.target.value))} />
+          </label>
+        ))}
+        <div className="field">
+          <label htmlFor="tag-input">Tags</label>
+          <div className="tagBox">
+            {draft.tags.map(t => (
+              <button type="button" className="tagChip" key={t} aria-label={'Remove tag ' + t} onClick={() => update('tags', draft.tags.filter(x => x !== t))}>
+                {t}<X size={14} aria-hidden="true" />
+              </button>
+            ))}
+            <input id="tag-input" placeholder="add tag" value={tag} onChange={e => setTag(e.target.value)} onKeyDown={addTag} />
+          </div>
+        </div>
+        <label className="field">Source URL<input type="url" value={draft.source_url || ''} onChange={e => update('source_url', e.target.value)} /></label>
+        <label className="field">License note<input value={draft.license_note || ''} onChange={e => update('license_note', e.target.value)} /></label>
+        <fieldset className="checklist">
+          <legend>Publish checklist</legend>
+          {checklist.map(c => (
+            <label key={c}>
+              <input type="checkbox" checked={checks.includes(c)} onChange={e => setChecks(e.target.checked ? [...checks, c] : checks.filter(x => x !== c))} />
+              {c}
+            </label>
+          ))}
+        </fieldset>
+        <button className="saveDraft" disabled={busy || !valid} onClick={() => save('staging')}>Save as staging</button>
+        {!valid && <p className="hint">Add Burmese text, a category and a style to save.</p>}
+      </div>
+      <div className="editorFoot">
+        <button disabled={busy || !valid} onClick={() => save('rejected')}>Reject</button>
+        <button className="reviewed" disabled={busy || !valid} onClick={() => save('reviewed')}>
+          <span className="wide">Mark reviewed</span><span className="narrow">Review</span>
+        </button>
+        <button className="ink approve" disabled={busy || !valid || !ready} onClick={() => save('approved')}>
+          <span className="wide">{ready ? 'Approve & publish' : 'Tick all 4 to publish'}</span>
+          <span className="narrow">{ready ? 'Approve' : checks.length + '/4 checked'}</span>
+        </button>
+      </div>
+    </aside>
   );
-};
-
-export default EditPickupLineModal;
+}
