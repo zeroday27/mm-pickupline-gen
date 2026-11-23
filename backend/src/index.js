@@ -14,7 +14,7 @@ config({ path: path.resolve(__dirname, '../.env') });
 import { PickupLine } from './models/pickupLine.js';
 import { authMiddleware } from './middleware/auth.js';
 import adminRoutes from './routes/admin.js';
-import { recommendPickupLine } from './services/recommendationService.js';
+import { publicFilter, catalogueOptions, recommendPickupLine } from './services/recommendationService.js';
 
 const app = express();
 if (process.env.WORKER_PROXY === '1') app.set('trust proxy', 1);
@@ -64,6 +64,14 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.get('/api/pickup-lines/options', async (_req, res) => {
+  try {
+    res.json(await catalogueOptions(PickupLine));
+  } catch {
+    res.status(500).json({ error: 'Could not load catalogue options' });
+  }
+});
+
 // Public routes
 app.get('/api/pickup-lines', async (req, res) => {
   try {
@@ -71,15 +79,9 @@ app.get('/api/pickup-lines', async (req, res) => {
     if ([category, style].some(value => value !== undefined && typeof value !== 'string')) {
       return res.status(400).json({ error: 'Invalid filter' });
     }
-    const query = {
-      $or: [
-        { review_status: 'approved' },
-        { review_status: { $exists: false } }
-      ]
-    };
+    const query = { ...publicFilter };
     if (category) query.category = { $eq: category };
     if (style) query.style = { $eq: style };
-    query.length = 'short';
 
     const pickupLines = await PickupLine.find(query);
     res.json(pickupLines);
@@ -92,27 +94,14 @@ app.get('/api/pickup-lines', async (req, res) => {
 // Database-first recommendation endpoint
 app.post('/api/generate', async (req, res) => {
   try {
-    const { interest, style, language = 'my' } = req.body;
-
-    if (![interest, style, language].every(value => typeof value === 'string' && value.trim() && value.length <= 80)) {
-      return res.status(400).json({
-        error: 'Missing required fields: interest, style'
-      });
+    const { interest, style, language = 'my', seenIds = [] } = req.body || {};
+    const category = PickupLine.schema.path('category').enumValues.find(value => value === interest);
+    const vibe = style === 'any' ? 'any' : PickupLine.schema.path('style').enumValues.find(value => value === style);
+    if (!category || !vibe || language !== 'my' || !Array.isArray(seenIds) ||
+        seenIds.length > 3072 || !seenIds.every(id => typeof id === 'string' && /^[a-f0-9]{24}$/.test(id))) {
+      return res.status(400).json({ error: 'Invalid matching preferences or history' });
     }
-
-    const recommendation = await recommendPickupLine(PickupLine, {
-      interest,
-      style,
-      length: 'short',
-      language
-    });
-
-    if (!recommendation) {
-      return res.status(404).json({
-        error: 'No curated pickup lines found for the selected criteria'
-      });
-    }
-
+    const recommendation = await recommendPickupLine(PickupLine, { interest: category, style: vibe, seenIds });
     res.json(recommendation);
   } catch (error) {
     console.error('Error generating pickup line:', error);

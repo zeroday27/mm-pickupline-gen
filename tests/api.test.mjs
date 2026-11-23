@@ -21,20 +21,44 @@ test('basic auth accepts complete credentials including colons and fails closed'
   assert.equal(authorize('editor:'), 401);
 });
 
-test('every fallback query restricts visibility to approved and legacy records', async () => {
+function modelWith(rows, queries = []) {
+  return { find(query) {
+    queries.push(query);
+    return { lean: () => rows.filter(row => Object.entries(query).every(([key, value]) => row[key] === (value.$eq ?? value))) };
+  } };
+}
+
+const approved = { category: 'travel', style: 'cute', language: 'my', length: 'short', review_status: 'approved', burmese_text: 'မင်္ဂလာပါ' };
+
+test('exact matching requires explicit approval, Burmese, short, interest and style', async () => {
   const queries = [];
-  const model = { find(query) { queries.push(query); return { limit: () => [] }; } };
-  assert.equal(await recommendPickupLine(model, { interest: 'tech', style: 'cute' }), null);
-  assert.ok(queries.length > 1);
-  for (const query of queries) assert.deepEqual(query.$or, [
-    { review_status: 'approved' }, { review_status: { $exists: false } }
-  ]);
+  const rows = [{ ...approved, _id: 'a' }, ...[
+    { review_status: undefined }, { review_status: 'staging' }, { style: 'sweet' },
+    { category: 'books' }, { language: 'en' }, { length: 'long' }
+  ].map((change, i) => ({ ...approved, ...change, _id: String(i) }))];
+  const model = modelWith(rows, queries);
+  const result = await recommendPickupLine(model, { interest: 'travel', style: 'cute' });
+  assert.equal(result.id, 'a');
+  assert.equal(result.text, approved.burmese_text);
+  assert.ok(result.insight.followUp);
+  assert.equal(result.remaining, 0);
+  assert.deepEqual(queries, [{ review_status: 'approved', language: 'my', length: 'short', category: { $eq: 'travel' }, style: { $eq: 'cute' } }]);
+  assert.equal((await recommendPickupLine(model, { interest: 'food', style: 'any' })).status, 'empty');
 });
 
-test('an exact match returns the curated Burmese text and its insight', async () => {
-  const model = { find: () => ({ limit: () => [{ category: 'tech', style: 'cute', burmese_text: 'မင်္ဂလာပါ' }] }) };
-  const result = await recommendPickupLine(model, { interest: 'tech', style: 'cute' });
-  assert.equal(result.text, 'မင်္ဂလာပါ');
-  assert.equal(result.source, 'database_curated');
-  assert.ok(result.insight.followUp);
+test('any vibe returns actual tags and rerolls reach every unseen candidate', async () => {
+  const rows = Array.from({ length: 11 }, (_, i) => ({ ...approved, _id: String(i),
+    style: i % 2 ? 'cute' : 'sweet', quality_score: i < 8 ? 100 : 0, safety_score: 90 }));
+  const model = modelWith(rows);
+  const seenIds = [];
+  for (let n = 0; n < rows.length; n++) {
+    const line = await recommendPickupLine(model, { interest: 'travel', style: 'any', seenIds });
+    if (n === 0) assert.ok(Number(line.id) < 8);
+    assert.ok(!seenIds.includes(line.id));
+    assert.equal(line.style, rows[Number(line.id)].style);
+    assert.equal(line.remaining, rows.length - n - 1);
+    seenIds.push(line.id);
+  }
+  assert.deepEqual(await recommendPickupLine(model, { interest: 'travel', style: 'any', seenIds }),
+    { status: 'exhausted', total: 11, remaining: 0 });
 });
