@@ -38,7 +38,7 @@ test('Copy text preserves the line and Share and Chat attach each current PNG', 
   await page.getByRole('button', { name: 'Share postcard' }).click();
   await expect.poll(() => page.evaluate(() => window.cards.length)).toBe(1);
   await expect(page.getByRole('dialog')).toBeHidden();
-  await page.getByRole('button', { name: 'Another one (1 left)' }).click();
+  await page.getByRole('button', { name: 'Another one', exact: true }).click();
   await page.getByRole('button', { name: 'Send postcard to chat' }).click();
   await expect.poll(() => page.evaluate(() => window.cards.length)).toBe(2);
   const [first, next] = await page.evaluate(() => window.cards);

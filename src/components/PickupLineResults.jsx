@@ -118,7 +118,7 @@ export default function PickupLineResults({ line, picks, count, back, generate }
           <button className="circle" aria-label="Send postcard to chat" title="Send postcard to chat" disabled={!card} onClick={share}><MessageCircle /></button>
         </div>
         {line.remaining > 0
-          ? <button className="lime another" onClick={generate}><RefreshCw />Another one ({line.remaining} left)</button>
+          ? <button className="lime another" onClick={generate}><RefreshCw />Another one</button>
           : <>
             <small role="status">You’ve seen all {line.total} for {title(line.category)} · {vibeLabel(picks.vibe)}.</small>
             <button className="lime another" onClick={back}>Choose another vibe or interest</button>
