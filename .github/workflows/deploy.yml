@@ -117,7 +117,7 @@ jobs:
       cancel-in-progress: false
     env:
       IMAGE: asia-southeast1-docker.pkg.dev/yangonai/pickup-staging/app
-      APP_URL: https://pickup-staging-tl4o72ekeq-as.a.run.app
+      APP_URL: https://pickupline-mm.yangonai.com
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -195,15 +195,5 @@ jobs:
             --startup-probe=httpGet.path=/api/health,httpGet.port=8080,periodSeconds=5,timeoutSeconds=3,failureThreshold=18 \
             --update-env-vars=CORS_ORIGINS=https://pickupline-mm.yangonai.com \
             --image="$digest" --set-secrets="$(IFS=,; echo "${bindings[*]}")" --quiet
-      - name: Authenticate smoke test
-        id: smoke_auth
-        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
-        with:
-          workload_identity_provider: projects/1023191960735/locations/global/workloadIdentityPools/pickup-staging/providers/github
-          service_account: pickup-staging-deploy@yangonai.iam.gserviceaccount.com
-          token_format: id_token
-          id_token_audience: ${{ env.APP_URL }}
-      - name: Verify live UI, API and Atlas
-        env:
-          RUN_ID_TOKEN: ${{ steps.smoke_auth.outputs.id_token }}
+      - name: Verify public UI, generator and admin authentication
         run: node scripts/smoke-cloud-run.mjs

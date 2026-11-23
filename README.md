@@ -8,6 +8,10 @@ The release hostname is `pickupline-mm.yangonai.com`. Reviewed changes to
 `main` deploy after CI and security checks pass. To apply a runtime secret
 change, run `gh workflow run deploy.yml --ref main`.
 
+To queue a reviewed PR, run `gh pr merge NUMBER --auto --merge`. GitHub waits
+for the required checks on an up-to-date branch. After deployment, CI checks
+the public hostname, calls the generator, and verifies admin authentication.
+
 The in-place promotion keeps the service `pickup-staging`, Atlas database
 `pickup_staging`, and Infisical `staging:/pickup` as live resources.
 The GitHub deployment environment named `staging` admits only `main`.
