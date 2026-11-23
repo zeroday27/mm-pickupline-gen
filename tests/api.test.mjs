@@ -24,7 +24,7 @@ test('basic auth accepts complete credentials including colons and fails closed'
 function modelWith(rows, queries = []) {
   return { find(query) {
     queries.push(query);
-    return { lean: () => rows.filter(row => Object.entries(query).every(([key, value]) => row[key] === value)) };
+    return { lean: () => rows.filter(row => Object.entries(query).every(([key, value]) => row[key] === (value.$eq ?? value))) };
   } };
 }
 
@@ -42,7 +42,7 @@ test('exact matching requires explicit approval, Burmese, short, interest and st
   assert.equal(result.text, approved.burmese_text);
   assert.ok(result.insight.followUp);
   assert.equal(result.remaining, 0);
-  assert.deepEqual(queries, [{ review_status: 'approved', language: 'my', length: 'short', category: 'travel', style: 'cute' }]);
+  assert.deepEqual(queries, [{ review_status: 'approved', language: 'my', length: 'short', category: { $eq: 'travel' }, style: { $eq: 'cute' } }]);
   assert.equal((await recommendPickupLine(model, { interest: 'food', style: 'any' })).status, 'empty');
 });
 

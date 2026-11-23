@@ -95,13 +95,13 @@ app.get('/api/pickup-lines', async (req, res) => {
 app.post('/api/generate', async (req, res) => {
   try {
     const { interest, style, language = 'my', seenIds = [] } = req.body || {};
-    const validInterest = PickupLine.schema.path('category').enumValues.includes(interest);
-    const validStyle = style === 'any' || PickupLine.schema.path('style').enumValues.includes(style);
-    if (!validInterest || !validStyle || language !== 'my' || !Array.isArray(seenIds) ||
+    const category = PickupLine.schema.path('category').enumValues.find(value => value === interest);
+    const vibe = style === 'any' ? 'any' : PickupLine.schema.path('style').enumValues.find(value => value === style);
+    if (!category || !vibe || language !== 'my' || !Array.isArray(seenIds) ||
         seenIds.length > 3072 || !seenIds.every(id => typeof id === 'string' && /^[a-f0-9]{24}$/.test(id))) {
       return res.status(400).json({ error: 'Invalid matching preferences or history' });
     }
-    const recommendation = await recommendPickupLine(PickupLine, { interest, style, seenIds });
+    const recommendation = await recommendPickupLine(PickupLine, { interest: category, style: vibe, seenIds });
     res.json(recommendation);
   } catch (error) {
     console.error('Error generating pickup line:', error);

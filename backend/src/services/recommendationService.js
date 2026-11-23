@@ -83,8 +83,8 @@ function score(line) {
 }
 
 export async function recommendPickupLine(PickupLine, { interest, style, seenIds = [] }) {
-  const query = { ...publicFilter, category: interest };
-  if (style !== 'any') query.style = style;
+  const query = { ...publicFilter, category: { $eq: interest } };
+  if (style !== 'any') query.style = { $eq: style };
   const candidates = await PickupLine.find(query, 'text burmese_text category style quality_score safety_score').lean();
   const seen = new Set(seenIds);
   const ranked = candidates.filter(line => !seen.has(String(line._id)))
