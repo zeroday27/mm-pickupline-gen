@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Sparkle } from 'lucide-react';
 import { Brand, ThemeToggle } from './ThemeToggle';
 import PickupLineForm from './PickupLineForm';
@@ -6,12 +6,26 @@ import PickupLineResults from './PickupLineResults';
 import LoadingAnimation from './LoadingAnimation';
 import { generatePickupLine } from '../lib/api';
 
+import { title, vibeLabel } from './options';
+
 const steps = ['pick a vibe', 'get a line', 'shoot your shot'];
 const errorText = 'Pickup lines ထုတ်ယူရာတွင် အမှားတစ်ခု ဖြစ်ပွားခဲ့သည်။ ထပ်မံကြိုးစားကြည့်ပါ။';
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function PickupLineGenerator() {
-  const [picks, setPicks] = useState({ identity: '', interest: '', vibe: '' });
+  const [picks, setPicks] = useState({ interest: '', vibe: '' });
+  const sessionHistory = useRef(new Map());
+  function historyFor(interest) {
+    if (!sessionHistory.current.has(interest)) {
+      let ids = [];
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('pickup.seen.' + interest));
+        if (Array.isArray(saved)) ids = saved.filter(id => typeof id === 'string' && /^[a-f0-9]{24}$/.test(id));
+      } catch { /* Storage may be unavailable. */ }
+      sessionHistory.current.set(interest, ids);
+    }
+    return sessionHistory.current.get(interest);
+  }
   const [state, setState] = useState('pick');
   const [line, setLine] = useState(null);
   const [count, setCount] = useState(0);
@@ -25,14 +39,23 @@ export default function PickupLineGenerator() {
     setState('thinking');
     // Call the API right away; keep the thinking state up for at least `ms`.
     const [response] = await Promise.allSettled([
-      generatePickupLine(picks.identity, picks.interest, picks.vibe),
+      generatePickupLine(picks.interest, picks.vibe, historyFor(picks.interest)),
       wait(ms)
     ]);
-    if (response.status !== 'fulfilled' || !response.value?.text) {
+    const result = response.value;
+    if (result?.status === 'empty' || result?.status === 'exhausted') {
+      setLine(result);
+      setState('finished');
+      return;
+    }
+    if (response.status !== 'fulfilled' || !result?.text || !result.id) {
       setState('error');
       return;
     }
-    setLine(response.value);
+    const ids = historyFor(picks.interest);
+    ids.push(result.id);
+    try { sessionStorage.setItem('pickup.seen.' + picks.interest, JSON.stringify(ids)); } catch { /* Keep in-memory history. */ }
+    setLine(result);
     setCount(c => c + 1);
     setState('result');
   }
@@ -40,6 +63,7 @@ export default function PickupLineGenerator() {
   function back() {
     setState('pick');
     setCount(0);
+    setPicks(p => ({ ...p, vibe: '' }));
   }
 
   return (
@@ -64,10 +88,16 @@ export default function PickupLineGenerator() {
         </section>
         <section className="stage" aria-label="Line generator">
           {state === 'pick' && (
-            <PickupLineForm picks={picks} update={(field, value) => setPicks(p => ({ ...p, [field]: value }))} generate={generate} />
+            <PickupLineForm picks={picks} update={(field, value) => setPicks(p => field === 'interest' ? { interest: value, vibe: '' } : { ...p, vibe: value })} generate={generate} />
           )}
           {state === 'thinking' && <LoadingAnimation picks={picks} reroll={count > 0} duration={minimum} />}
           {state === 'result' && <PickupLineResults {...{ line, picks, count, back, generate }} />}
+          {state === 'finished' && (
+            <div className="errorstage">
+              <p role="status">{line.total ? 'You’ve seen all ' + line.total : 'No approved lines left'} for {title(picks.interest)} · {vibeLabel(picks.vibe)}.</p>
+              <button className="ink" onClick={back}>Choose another vibe or interest</button>
+            </div>
+          )}
           {state === 'error' && (
             <div className="errorstage">
               <p role="alert" lang="my">{errorText}</p>

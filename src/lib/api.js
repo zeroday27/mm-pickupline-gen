@@ -38,32 +38,20 @@ export async function fetchPickupLines(category, style) {
   }
 }
 
-// Generate pickup line using AI (falls back to database if no AI)
-export async function generatePickupLine(identity, interest, style, language = 'my') {
-  try {
-    const url = buildApiUrl('/api/generate');
+export async function getCatalogueOptions(signal) {
+  const response = await fetch(buildApiUrl('/api/pickup-lines/options'), { signal });
+  if (!response.ok) throw new Error('Could not load available vibes');
+  return response.json();
+}
 
-    if (import.meta.env.DEV) {
-      console.log('Generating with:', url, { identity, interest, style, language });
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ identity, interest, style, language })
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Generate API Error:', error);
-    throw error;
-  }
+export async function generatePickupLine(interest, style, seenIds) {
+  const response = await fetch(buildApiUrl('/api/generate'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ interest, style, language: 'my', seenIds })
+  });
+  if (!response.ok) throw new Error('Could not get a line');
+  return response.json();
 }
 
 // Check AI status

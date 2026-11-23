@@ -68,89 +68,48 @@ const CATEGORY_BEST_USE = {
   other: 'ပေါ့ပေါ့ပါးပါး small talk အစ'
 };
 
-const shuffle = (items) => {
-  const list = [...items];
-  for (let i = list.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [list[i], list[j]] = [list[j], list[i]];
-  }
-  return list;
-};
+export const publicFilter = { review_status: 'approved', language: 'my', length: 'short' };
 
-const weightedScore = (line, requestedStyle) => {
-  const quality = Number(line.quality_score ?? 70) * 0.6;
-  const safety = Number(line.safety_score ?? 95) * 0.3;
-  const styleBoost = line.style === requestedStyle ? 8 : 0;
-  const randomness = Math.random() * 5;
-  return quality + safety + styleBoost + randomness;
-};
+export async function catalogueOptions(PickupLine) {
+  return PickupLine.aggregate([
+    { $match: publicFilter },
+    { $group: { _id: { category: '$category', style: '$style' }, count: { $sum: 1 } } },
+    { $project: { _id: 0, category: '$_id.category', style: '$_id.style', count: 1 } }
+  ]);
+}
 
-const approvedOrLegacyFilter = {
-  $or: [
-    { review_status: 'approved' },
-    { review_status: { $exists: false } }
-  ]
-};
+function score(line) {
+  return (line.quality_score ?? 70) * 0.6 + (line.safety_score ?? 95) * 0.3 + Math.random() * 5;
+}
 
-const findCandidates = async (PickupLine, { interest, style, language }) => {
-  const baseQuery = {
-    ...approvedOrLegacyFilter,
-    category: interest
-  };
-
-  if (language) {
-    baseQuery.language = language;
+export async function recommendPickupLine(PickupLine, { interest, style, seenIds = [] }) {
+  const query = { ...publicFilter, category: interest };
+  if (style !== 'any') query.style = style;
+  const candidates = await PickupLine.find(query, 'text burmese_text category style quality_score safety_score').lean();
+  const seen = new Set(seenIds);
+  const ranked = candidates.filter(line => !seen.has(String(line._id)))
+    .map(line => ({ line, score: score(line) }))
+    .sort((a, b) => b.score - a.score);
+  if (!ranked.length) {
+    return { status: candidates.length ? 'exhausted' : 'empty', total: candidates.length, remaining: 0 };
   }
 
-  const levels = [
-    { ...baseQuery, style, length: 'short' },
-    { ...baseQuery, style },
-    { ...baseQuery, length: 'short' },
-    { ...baseQuery },
-    { ...approvedOrLegacyFilter, style, length: 'short' },
-    { ...approvedOrLegacyFilter, style },
-    { ...approvedOrLegacyFilter, length: 'short' },
-    { ...approvedOrLegacyFilter }
-  ];
-
-  for (const query of levels) {
-    const rows = await PickupLine.find(query).limit(150);
-    if (rows.length) return rows;
-  }
-
-  return [];
-};
-
-export const recommendPickupLine = async (PickupLine, params) => {
-  const {
-    interest,
-    style,
-    language = 'my'
-  } = params;
-
-  const candidates = await findCandidates(PickupLine, { interest, style, language });
-  if (!candidates.length) return null;
-
-  const ranked = candidates
-    .map((line) => ({ line, score: weightedScore(line, style) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-    .map(({ line }) => line);
-
-  const selected = shuffle(ranked)[0];
-  const insightBase = STYLE_INSIGHTS[selected.style] || STYLE_INSIGHTS.other;
-
+  const { line } = ranked[Math.floor(Math.random() * Math.min(8, ranked.length))];
+  const insight = STYLE_INSIGHTS[line.style] || STYLE_INSIGHTS.other;
   return {
-    text: selected.burmese_text || selected.text,
+    id: String(line._id),
+    text: line.burmese_text || line.text,
     source: 'database_curated',
     isAI: false,
-    category: selected.category,
-    style: selected.style,
+    category: line.category,
+    style: line.style,
     length: 'short',
+    total: candidates.length,
+    remaining: ranked.length - 1,
     insight: {
-      whyItWorks: insightBase.whyItWorks,
-      bestUsedWhen: CATEGORY_BEST_USE[selected.category] || CATEGORY_BEST_USE.other,
-      followUp: insightBase.followUp
+      whyItWorks: insight.whyItWorks,
+      bestUsedWhen: CATEGORY_BEST_USE[line.category] || CATEGORY_BEST_USE.other,
+      followUp: insight.followUp
     }
   };
-};
+}

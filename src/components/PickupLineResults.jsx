@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Copy, Check, Share2, MessageCircle, RefreshCw } from 'lucide-react';
-import { identities, title } from './options';
+import { title, vibeLabel } from './options';
 
 function TypedLine({ text }) {
   // Split on spaces and fade each word in; whitespace stays so the full height is reserved.
@@ -70,9 +70,8 @@ export default function PickupLineResults({ line, picks, count, back, generate }
       </header>
       <div className="resultScroll">
         <div className="tags">
-          <b className="tag-interest">{title(picks.interest)}</b>
-          <b className="tag-vibe">{title(picks.vibe)}</b>
-          <b className="tag-you">you: {identities[picks.identity]}</b>
+          <b className="tag-interest">{title(line.category)}</b>
+          <b className="tag-vibe">{title(line.style)}</b>
         </div>
         <article className="linecard" key={count}>
           <b className="sticker cap">no cap</b>
@@ -93,7 +92,13 @@ export default function PickupLineResults({ line, picks, count, back, generate }
           <button className="circle" aria-label="Share line" onClick={share}><Share2 /></button>
           <button className="circle" aria-label="Send with Messenger" onClick={messenger}><MessageCircle /></button>
         </div>
-        <button className="lime another" onClick={generate}><RefreshCw />Another one</button>
+        {line.remaining > 0
+          ? <button className="lime another" onClick={generate}><RefreshCw />Another one ({line.remaining} left)</button>
+          : <>
+            <small role="status">You’ve seen all {line.total} for {title(line.category)} · {vibeLabel(picks.vibe)}.</small>
+            <button className="lime another" onClick={back}>Choose another vibe or interest</button>
+          </>}
+
       </div>
     </div>
   );

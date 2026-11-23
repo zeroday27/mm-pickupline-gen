@@ -35,13 +35,21 @@ if (process.argv.includes('--production')) {
   assert.deepEqual((await matching.json()).map(row => row.text), [line.text]);
   const otherCategory = await fetch(new URL('/api/pickup-lines?category=music', origin));
   assert.deepEqual(await otherCategory.json(), []);
-  const generated = await fetch(new URL('/api/generate', origin), {
-    method: 'POST', headers, body: JSON.stringify({ interest: 'travel', style: 'cute' })
+  const options = () => fetch(new URL('/api/pickup-lines/options', origin)).then(res => res.json());
+  assert.deepEqual(await options(), [{ category: 'travel', style: 'cute', count: 1 }]);
+  const generate = (style, seenIds = []) => fetch(new URL('/api/generate', origin), {
+    method: 'POST', headers, body: JSON.stringify({ interest: 'travel', style, seenIds })
   });
+  const generated = await generate('cute');
   assert.equal(generated.status, 200);
-  assert.equal((await generated.json()).text, line.text);
+  const result = await generated.json();
+  assert.equal(result.text, line.text);
+  assert.equal((await (await generate('any', [result.id])).json()).status, 'exhausted');
+  assert.equal((await (await generate('romantic')).json()).status, 'empty');
+  assert.equal((await generate('any', [{}])).status, 400);
   const edited = await fetch(item, { method: 'PUT', headers, body: JSON.stringify({ review_status: 'staging' }) });
   assert.equal(edited.status, 200);
+  assert.deepEqual(await options(), []);
   const publicList = await fetch(new URL('/api/pickup-lines', origin));
   assert.deepEqual(await publicList.json(), []);
   const staged = await fetch(new URL(admin.href + '?category=travel&style=cute&review_status=staging&search=sample'), { headers });

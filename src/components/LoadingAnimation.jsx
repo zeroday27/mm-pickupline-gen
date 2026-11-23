@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { identities, title } from './options';
+import { title, vibeLabel } from './options';
 
 const burmese = [
   'စဉ်းစားနေပါတယ်...',
@@ -27,7 +27,7 @@ export default function LoadingAnimation({ picks, reroll, duration = 2400 }) {
     'checking rizz levels…',
     'almost there…'
   ];
-  const stickers = [identities[picks.identity], title(picks.interest), title(picks.vibe)];
+  const stickers = [title(picks.interest), vibeLabel(picks.vibe)];
   return (
     <div className="thinkingView" role="status" style={{ '--dur': duration + 'ms' }}>
       <small>{reroll ? 'shuffling' : 'cooking your line'}</small>

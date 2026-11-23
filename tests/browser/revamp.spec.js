@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Synthetic data only.
 const line = {
   text: 'မင်းကို တွေ့တော့ ကမ္ဘာကြီး ခဏရပ်သွားတယ်',
-  isAI: false,
+  id: '000000000000000000000001', category: 'music', style: 'flirty', remaining: 0, total: 1, isAI: false,
   insight: { whyItWorks: 'ရိုးရှင်းပြီး ချစ်စရာကောင်းတယ်', followUp: 'ကော်ဖီ တစ်ခွက်လောက် သွားသောက်ရအောင်' }
 };
 const adminLines = [
@@ -23,6 +23,7 @@ const runOnce = () => test.skip(test.info().project.name !== 'desktop', 'viewpor
 const fitsScreen = page => page.evaluate(() => document.scrollingElement.scrollHeight <= innerHeight);
 
 async function mockGenerate(page, delay = 0) {
+  await page.route('**/api/pickup-lines/options', route => route.fulfill({ json: [{ category: 'music', style: 'flirty', count: 1 }] }));
   await page.route('**/api/generate', async route => {
     if (delay) await new Promise(r => setTimeout(r, delay));
     await route.fulfill({ json: line });
@@ -30,7 +31,6 @@ async function mockGenerate(page, delay = 0) {
 }
 
 async function pickAll(page) {
-  await page.getByRole('button', { name: 'Girl', exact: true }).click();
   await page.getByRole('button', { name: 'Music', exact: true }).click();
   await page.getByRole('button', { name: 'Flirty', exact: true }).click();
 }
@@ -42,7 +42,7 @@ for (const viewport of viewports) {
     runOnce();
       await mockGenerate(page);
       await page.goto('/');
-      const cta = page.getByRole('button', { name: 'Pick all three' });
+      const cta = page.getByRole('button', { name: 'Pick an interest and vibe' });
       await expect(cta).toBeDisabled();
       expect(await fitsScreen(page)).toBe(true);
       await pickAll(page);
