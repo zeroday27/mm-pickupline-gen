@@ -103,55 +103,8 @@ jobs:
             -H "X-Api-Key: ${DEPENDENCY_TRACK_API_KEY:?}" -F "project=${PROJECT:?}" \
             -F 'bom=@pickup.cdx.json' "${TRACK_URL%/}/api/v1/bom"
 
-  deploy:
-    needs: [check, security]
-    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      id-token: write
-    environment: production
-    concurrency:
-      group: cloudflare-production
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Load deployment secrets
-        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d
-        with:
-          method: oidc
-          identity-id: ${{ vars.INFISICAL_IDENTITY_ID }}
-          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
-          env-slug: prod
-          secret-path: /pickup
-          include-imports: false
-      - name: Deploy Worker, assets and API container
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          APP_URL: ${{ vars.APP_URL }}
-        run: |
-          set -eu
-          : "${CLOUDFLARE_ACCOUNT_ID:?}" "${CLOUDFLARE_API_TOKEN:?}" "${MONGODB_URI:?}" "${ADMIN_USERNAME:?}" "${ADMIN_PASSWORD:?}" "${APP_URL:?}"
-          secret_file=$(mktemp --suffix=.json)
-          trap 'rm -f "$secret_file"' EXIT
-          node -e 'const keys = ["MONGODB_URI","ADMIN_USERNAME","ADMIN_PASSWORD"]; process.stdout.write(JSON.stringify(Object.fromEntries(keys.map(k => [k, process.env[k]]))))' > "$secret_file"
-          npx --no-install wrangler deploy --secrets-file "$secret_file"
-      - name: Verify production site and database
-        env:
-          APP_URL: ${{ vars.APP_URL }}
-        run: node scripts/smoke.mjs --production
-
-  staging:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/stag'
+  live:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [check, security]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -160,7 +113,7 @@ jobs:
       contents: read
       id-token: write
     concurrency:
-      group: pickup-cloud-run-staging
+      group: pickup-cloud-run-live
       cancel-in-progress: false
     env:
       IMAGE: asia-southeast1-docker.pkg.dev/yangonai/pickup-staging/app
@@ -169,9 +122,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Build staging image
+      - name: Build release image
         run: docker build --target cloud_run -f Dockerfile.backend -t "$IMAGE:$GITHUB_SHA" .
-      - name: Scan staging image
+      - name: Scan release image
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           image-ref: ${{ env.IMAGE }}:${{ github.sha }}
@@ -179,12 +132,12 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '1'
-      - name: Authenticate staging deployer
+      - name: Authenticate release deployer
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
         with:
           workload_identity_provider: projects/1023191960735/locations/global/workloadIdentityPools/pickup-staging/providers/github
           service_account: pickup-staging-deploy@yangonai.iam.gserviceaccount.com
-      - name: Publish staging image
+      - name: Publish release image
         run: |
           gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
           docker push "$IMAGE:$GITHUB_SHA"
@@ -222,7 +175,7 @@ jobs:
           secret-name: ADMIN_PASSWORD
           include-imports: false
 
-      - name: Deploy private revision
+      - name: Deploy live revision
         shell: bash
         run: |
           set -euo pipefail
@@ -240,6 +193,7 @@ jobs:
           digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE:$GITHUB_SHA")
           gcloud run services update pickup-staging --project=yangonai --region=asia-southeast1 \
             --startup-probe=httpGet.path=/api/health,httpGet.port=8080,periodSeconds=5,timeoutSeconds=3,failureThreshold=18 \
+            --update-env-vars=CORS_ORIGINS=https://pickupline-mm.yangonai.com \
             --image="$digest" --set-secrets="$(IFS=,; echo "${bindings[*]}")" --quiet
       - name: Authenticate smoke test
         id: smoke_auth
@@ -249,7 +203,7 @@ jobs:
           service_account: pickup-staging-deploy@yangonai.iam.gserviceaccount.com
           token_format: id_token
           id_token_audience: ${{ env.APP_URL }}
-      - name: Verify private staging UI, API and Atlas
+      - name: Verify live UI, API and Atlas
         env:
           RUN_ID_TOKEN: ${{ steps.smoke_auth.outputs.id_token }}
         run: node scripts/smoke-cloud-run.mjs

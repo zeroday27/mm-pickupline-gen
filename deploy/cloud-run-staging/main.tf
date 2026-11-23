@@ -12,7 +12,7 @@ locals {
   project = "yangonai"
   region  = "asia-southeast1"
   name    = "pickup-staging"
-  labels  = { application = "mm-pickupline-gen", environment = "staging" }
+  labels  = { application = "mm-pickupline-gen", environment = "production" }
 }
 
 provider "google" {
@@ -75,8 +75,8 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "assertion.repository_id == '880826703'",
     "assertion.repository_owner_id == '86004494'",
     "assertion.sub == 'repo:zeroday27/mm-pickupline-gen:environment:staging'",
-    "assertion.ref == 'refs/heads/stag'",
-    "assertion.workflow_ref == 'zeroday27/mm-pickupline-gen/.github/workflows/deploy.yml@refs/heads/stag'"
+    "assertion.ref == 'refs/heads/main'",
+    "assertion.workflow_ref == 'zeroday27/mm-pickupline-gen/.github/workflows/deploy.yml@refs/heads/main'"
   ])
   oidc { issuer_uri = "https://token.actions.githubusercontent.com" }
 }
@@ -90,7 +90,7 @@ resource "google_service_account_iam_member" "github" {
 resource "google_cloud_run_v2_service" "staging" {
   name                = local.name
   location            = local.region
-  deletion_protection = false
+  deletion_protection = true
   labels              = local.labels
   template {
     service_account = google_service_account.runtime.email
@@ -161,3 +161,10 @@ resource "google_secret_manager_secret_iam_member" "publish" {
 output "atlas_allowlist" { value = "${google_compute_address.egress.address}/32" }
 output "identity_provider" { value = google_iam_workload_identity_pool_provider.github.name }
 output "service_url" { value = google_cloud_run_v2_service.staging.uri }
+
+resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
+  location = local.region
+  name     = google_cloud_run_v2_service.staging.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
