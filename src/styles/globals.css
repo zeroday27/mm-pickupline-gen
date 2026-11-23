@@ -133,7 +133,12 @@ dialog::backdrop{background:#0E0E1080}
 .tags .tag-you{background:transparent;color:var(--muted);border-color:var(--line)}
 .linecard,.preview{border:2px solid var(--black);border-radius:30px;background:var(--lilac);color:var(--black);padding:22px 24px;position:relative}
 .linecard{margin:26px 10px 18px 4px;box-shadow:6px 6px 0 var(--ink);transform:rotate(-1.2deg);animation:land .6s cubic-bezier(.2,1.5,.4,1) both}
-.linecard small,.preview small{color:var(--lilac-ink)}
+.postcardCredit{margin-top:16px;text-align:right;font:400 12px/1.5 var(--ui)}
+.postcardCredit strong{font-family:var(--display);font-weight:700}
+.postcardDialog img{display:block;width:100%;max-height:48dvh;object-fit:contain}
+.postcardDialog p{margin:12px 0}
+.postcardDialog a{display:inline-flex;align-items:center;padding:0 18px;min-height:44px;border-radius:999px;font-weight:600;text-decoration:none}
+.preview small{color:var(--lilac-ink)}
 .linecard p,.preview p{font-family:var(--my);font-weight:600;font-size:26px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}
 .linecard p span{animation:word .25s ease-out both}
 .cap{position:absolute;right:14px;top:-16px;transform:rotate(7deg);animation:sticker .4s .45s var(--spring) backwards}

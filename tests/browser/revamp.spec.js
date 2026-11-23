@@ -51,7 +51,7 @@ for (const viewport of viewports) {
       await expect(page.locator('.thinkingView')).toBeVisible();
       await expect(page.getByText('cooking your line')).toBeVisible();
       await expect(page.getByLabel(line.text, { exact: true })).toBeVisible({ timeout: 6000 });
-      await expect(page.getByRole('button', { name: 'Copy line' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Copy text' })).toBeVisible();
       expect(await fitsScreen(page)).toBe(true);
     });
   });
