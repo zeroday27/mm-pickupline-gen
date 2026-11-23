@@ -22,7 +22,7 @@ test('match an interest, reroll and remember seen lines after refresh', async ({
   await button('Any vibe').click();
   await button('Shoot my shot').click();
   await expect(page.locator('.tag-vibe')).toHaveText('Sweet');
-  await button('Another one (1 left)').click();
+  await button('Another one').click();
   await expect(page.locator('.tag-vibe')).toHaveText('Cute');
   await expect(page.getByRole('status')).toContainText('seen all 2');
   await page.reload();
