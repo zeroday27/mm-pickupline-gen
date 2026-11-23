@@ -44,7 +44,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-      - uses: github/codeql-action/analyze@e9c4b4b153701845b921f167180044d14fe89b94
+      - uses: github/codeql-action/analyze@38112626f97ac1fd7acf3df7ebca51f4677c1b38
         with:
           output: sarif
       - name: Gate high severity findings
